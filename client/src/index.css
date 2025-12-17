@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #0b0b0b;
+  color: #f5f5f5;
+}
+
+body {
+  margin: 0;
+  min-height: 2868px;
+  min-width: 1320px;
+  background-color: #0b0b0b;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 60px 0;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
