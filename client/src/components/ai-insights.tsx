@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import {
   Brain,
@@ -25,6 +25,12 @@ import {
   type WeatherRecommendation,
   type SchedulePrediction
 } from "@/lib/ml-service";
+import { useBudgetStore } from "@/store/budgetStore";
+import { useScheduleStore } from "@/store/scheduleStore";
+import { useProjectStore } from "@/store/projectStore";
+
+// Default project location (can be extended to be configurable per project)
+const DEFAULT_PROJECT_LOCATION = "Bhopal";
 
 interface AIInsightsProps {
   compact?: boolean;
@@ -245,14 +251,24 @@ export function WeatherTaskRecommendations() {
   const [recommendations, setRecommendations] = useState<WeatherRecommendation[]>([]);
   const [selectedDay, setSelectedDay] = useState(0);
 
+  // Get current project phase from schedule store
+  const phases = useScheduleStore((state) => state.phases);
+  const currentPhase = useMemo(() => {
+    // Find the phase that's currently in progress (highest progress < 100%)
+    const inProgressPhases = phases
+      .filter((p) => p.progress > 0 && p.progress < 100)
+      .sort((a, b) => b.progress - a.progress);
+    return inProgressPhases[0]?.name.toLowerCase() || "structure";
+  }, [phases]);
+
   useEffect(() => {
     loadRecommendations();
-  }, []);
+  }, [currentPhase]);
 
   const loadRecommendations = async () => {
     setIsLoading(true);
     try {
-      const data = await getWeatherScheduleRecommendations("Bhopal", "structure");
+      const data = await getWeatherScheduleRecommendations(DEFAULT_PROJECT_LOCATION, currentPhase);
       setRecommendations(data);
     } catch (error) {
       console.error("Failed to load weather recommendations:", error);
@@ -401,14 +417,29 @@ export function BudgetForecastCard() {
   const [isLoading, setIsLoading] = useState(true);
   const [forecast, setForecast] = useState<BudgetForecast | null>(null);
 
+  // Get real budget data from store
+  const totalSpent = useBudgetStore((state) => state.getTotalSpent());
+  const totalAllocated = useBudgetStore((state) => state.getTotalAllocated());
+  const spendingHistory = useBudgetStore((state) => state.spendingHistory);
+  const expenses = useBudgetStore((state) => state.expenses);
+
+  // Convert spending history to the format expected by ML service
+  const historicalData = useMemo(() => {
+    return expenses.map((exp) => ({
+      date: exp.date,
+      amount: exp.amount,
+      category: exp.category
+    }));
+  }, [expenses]);
+
   useEffect(() => {
     loadForecast();
-  }, []);
+  }, [totalSpent, totalAllocated]);
 
   const loadForecast = async () => {
     setIsLoading(true);
     try {
-      const data = await generateBudgetForecast(230000, 1125000, []);
+      const data = await generateBudgetForecast(totalSpent, totalAllocated, historicalData);
       setForecast(data);
     } catch (error) {
       console.error("Failed to load budget forecast:", error);
@@ -529,19 +560,41 @@ export function SchedulePredictionCard() {
   const [isLoading, setIsLoading] = useState(true);
   const [prediction, setPrediction] = useState<SchedulePrediction | null>(null);
 
+  // Get real schedule data from stores
+  const project = useProjectStore((state) => state.project);
+  const phases = useScheduleStore((state) => state.phases);
+  const getOverallProgress = useScheduleStore((state) => state.getOverallProgress);
+  const getTasksByStatus = useScheduleStore((state) => state.getTasksByStatus);
+
+  // Calculate schedule metrics from real data
+  const scheduleMetrics = useMemo(() => {
+    const taskStats = getTasksByStatus();
+    const totalTasks = taskStats.completed + taskStats.in_progress + taskStats.pending;
+    const completedTasks = taskStats.completed;
+    const progress = getOverallProgress();
+
+    return {
+      currentProgress: progress,
+      tasksCompleted: completedTasks,
+      totalTasks,
+      startDate: project.startDate,
+      targetEndDate: project.targetEndDate
+    };
+  }, [phases, project, getOverallProgress, getTasksByStatus]);
+
   useEffect(() => {
     loadPrediction();
-  }, []);
+  }, [scheduleMetrics.currentProgress, scheduleMetrics.tasksCompleted]);
 
   const loadPrediction = async () => {
     setIsLoading(true);
     try {
       const data = await predictProjectProgress(
-        25,
-        12,
-        48,
-        "2025-12-01",
-        "2026-06-30"
+        scheduleMetrics.currentProgress,
+        scheduleMetrics.tasksCompleted,
+        scheduleMetrics.totalTasks,
+        scheduleMetrics.startDate,
+        scheduleMetrics.targetEndDate
       );
       setPrediction(data);
     } catch (error) {

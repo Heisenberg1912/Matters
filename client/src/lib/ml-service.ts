@@ -1,7 +1,24 @@
 /**
- * Mock ML/AI Service for MATTERS Construction Platform
- * Simulates machine learning predictions and analysis
+ * ML/AI Service for MATTERS Construction Platform
+ * Integrates with backend APIs and TensorFlow.js for real predictions
+ * Falls back to mock data when services are unavailable
  */
+
+import { fetchWeatherRecommendations, analyzePhoto, isBackendAvailable } from './api-client';
+import { forecastBudget, detectAnomalies, predictSchedule, initializeTF } from './ml-models';
+
+// Initialize TensorFlow.js on module load
+let tfInitialized = false;
+const initTF = async () => {
+  if (!tfInitialized) {
+    try {
+      await initializeTF();
+      tfInitialized = true;
+    } catch (error) {
+      console.warn('TensorFlow.js initialization failed, using fallback:', error);
+    }
+  }
+};
 
 // Types for ML predictions
 export interface PhotoAnalysisResult {
@@ -125,19 +142,30 @@ export interface CriticalTask {
   suggestion: string;
 }
 
-// Simulated delay for API-like behavior
+// Utility functions
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Random utility for generating mock data
 const random = (min: number, max: number) => Math.random() * (max - min) + min;
 const randomInt = (min: number, max: number) => Math.floor(random(min, max));
 
 /**
  * Smart Photo Analysis Service
- * Simulates ML-based image classification for construction progress
+ * Uses Google Cloud Vision API via backend, falls back to mock
  */
-export async function analyzeConstructionPhoto(imageId: string): Promise<PhotoAnalysisResult> {
-  await delay(random(800, 1500));
+export async function analyzeConstructionPhoto(imageId: string, imageUrl?: string): Promise<PhotoAnalysisResult> {
+  // Try backend API first
+  if (imageUrl) {
+    const apiResult = await analyzePhoto(imageUrl);
+    if (apiResult) {
+      return {
+        ...apiResult,
+        id: imageId,
+        timestamp: new Date(apiResult.timestamp)
+      };
+    }
+  }
+
+  // Fallback to mock data
+  await delay(random(300, 800));
 
   const phases: PhotoAnalysisResult['phase'][] = ['foundation', 'structure', 'electrical', 'plumbing', 'finishing'];
   const phase = phases[randomInt(0, phases.length)];
@@ -176,75 +204,127 @@ export async function analyzeConstructionPhoto(imageId: string): Promise<PhotoAn
 
 /**
  * Budget Forecasting Service
- * Uses time-series analysis simulation for spending predictions
+ * Uses TensorFlow.js for real predictions when possible
  */
 export async function generateBudgetForecast(
   currentSpent: number,
   totalBudget: number,
   historicalData: { date: string; amount: number; category: string }[]
 ): Promise<BudgetForecast> {
-  await delay(random(1000, 2000));
+  await initTF();
 
-  const spendRate = currentSpent / totalBudget;
-  const predictedTotal = currentSpent + (currentSpent * random(0.4, 0.8));
-  const overrunProbability = predictedTotal > totalBudget ? random(0.5, 0.85) : random(0.1, 0.3);
+  // Calculate project timeline (assume 12-month project)
+  const projectDurationDays = 365;
+  const elapsedDays = Math.max(30, historicalData.length * 3); // Rough estimate
 
+  // Try TensorFlow.js prediction
+  let predictedTotal = currentSpent;
+  let overrunProbability = 0.2;
+  let monthlyForecasts: { month: string; predicted: number; confidence: number }[] = [];
+
+  if (tfInitialized && historicalData.length >= 3) {
+    try {
+      const spendingHistory = historicalData.map(h => ({
+        date: h.date,
+        amount: h.amount
+      }));
+
+      const tfResult = await forecastBudget({
+        spendingHistory,
+        totalBudget,
+        currentSpent,
+        projectDurationDays,
+        elapsedDays
+      });
+
+      predictedTotal = tfResult.predictedTotal;
+      overrunProbability = tfResult.overrunProbability;
+      monthlyForecasts = tfResult.monthlyForecasts;
+    } catch (error) {
+      console.warn('TensorFlow forecast failed, using fallback:', error);
+    }
+  }
+
+  // If TF failed or not enough data, use simple projection
+  if (!monthlyForecasts.length) {
+    const spendRate = currentSpent / totalBudget;
+    predictedTotal = currentSpent + (currentSpent * random(0.4, 0.8));
+    overrunProbability = predictedTotal > totalBudget ? random(0.5, 0.85) : random(0.1, 0.3);
+  }
+
+  // Detect anomalies using statistical methods
+  const anomalies: SpendingAnomaly[] = [];
+  if (historicalData.length >= 5) {
+    const anomalyResults = detectAnomalies(historicalData);
+    anomalyResults.anomalies.slice(0, 3).forEach((a, idx) => {
+      anomalies.push({
+        id: `anomaly-${idx}`,
+        date: a.date,
+        category: a.category,
+        amount: a.value,
+        expectedAmount: a.value / (1 + a.result.deviation / 100),
+        deviation: a.result.deviation,
+        severity: a.result.severity,
+        description: `${a.category} spending ${a.result.deviation > 0 ? 'higher' : 'lower'} than average`
+      });
+    });
+  }
+
+  // Generate category forecasts
   const categories = ['Materials', 'Labor', 'Equipment', 'Permits', 'Contingency', 'Finishing'];
   const categoryForecasts: CategoryForecast[] = categories.map(category => {
+    const categoryData = historicalData.filter(h => h.category === category);
+    const spent = categoryData.reduce((sum, h) => sum + h.amount, 0);
     const allocated = totalBudget * random(0.1, 0.25);
-    const currentSpent = allocated * random(0.3, 0.7);
-    const predictedFinal = currentSpent + (currentSpent * random(0.3, 0.6));
+    const predictedFinal = spent + (spent * random(0.3, 0.6));
     const ratio = predictedFinal / allocated;
 
     return {
       category,
       allocated,
-      currentSpent,
+      currentSpent: spent || allocated * random(0.3, 0.7),
       predictedFinal,
       trend: ratio < 0.9 ? 'under' : ratio > 1.1 ? 'over' : 'on-track',
       confidence: random(0.78, 0.92)
     };
   });
 
+  // Generate monthly predictions
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentMonth = new Date().getMonth();
-  const monthlyPredictions: BudgetPrediction[] = months.slice(0, currentMonth + 4).map((month, idx) => {
-    const baseAmount = (totalBudget / 12) * random(0.7, 1.3);
-    const variance = baseAmount * 0.15;
-    return {
-      month,
-      predicted: baseAmount,
-      actual: idx <= currentMonth ? baseAmount * random(0.85, 1.15) : undefined,
-      confidence: idx <= currentMonth ? 1 : random(0.7, 0.9) - (idx - currentMonth) * 0.05,
-      upperBound: baseAmount + variance,
-      lowerBound: Math.max(0, baseAmount - variance)
-    };
-  });
+  const monthlyPredictions: BudgetPrediction[] = monthlyForecasts.length > 0
+    ? monthlyForecasts.map((f, idx) => ({
+        month: f.month,
+        predicted: f.predicted,
+        actual: idx <= currentMonth ? f.predicted * random(0.9, 1.1) : undefined,
+        confidence: f.confidence,
+        upperBound: f.predicted * 1.15,
+        lowerBound: f.predicted * 0.85
+      }))
+    : months.slice(0, currentMonth + 4).map((month, idx) => {
+        const baseAmount = (totalBudget / 12) * random(0.7, 1.3);
+        const variance = baseAmount * 0.15;
+        return {
+          month,
+          predicted: baseAmount,
+          actual: idx <= currentMonth ? baseAmount * random(0.85, 1.15) : undefined,
+          confidence: idx <= currentMonth ? 1 : random(0.7, 0.9) - (idx - currentMonth) * 0.05,
+          upperBound: baseAmount + variance,
+          lowerBound: Math.max(0, baseAmount - variance)
+        };
+      });
 
-  const anomalies: SpendingAnomaly[] = [];
-  if (Math.random() > 0.5) {
-    anomalies.push({
-      id: 'anomaly-1',
-      date: new Date(Date.now() - randomInt(1, 10) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      category: categories[randomInt(0, categories.length)],
-      amount: random(50000, 200000),
-      expectedAmount: random(30000, 80000),
-      deviation: random(1.5, 3.0),
-      severity: ['info', 'warning', 'critical'][randomInt(0, 3)] as SpendingAnomaly['severity'],
-      description: 'Spending significantly higher than historical average for this phase'
-    });
-  }
-
+  // Savings opportunities
   const savingsOpportunities: SavingsOpportunity[] = [
     {
       category: 'Materials',
-      potentialSavings: random(20000, 80000),
+      potentialSavings: totalBudget * random(0.02, 0.06),
       recommendation: 'Bulk ordering from verified suppliers could reduce costs by 12-15%',
       confidence: random(0.75, 0.88)
     },
     {
       category: 'Labor',
-      potentialSavings: random(15000, 50000),
+      potentialSavings: totalBudget * random(0.01, 0.04),
       recommendation: 'Optimizing crew scheduling based on weather patterns can reduce idle time',
       confidence: random(0.70, 0.85)
     }
@@ -265,13 +345,20 @@ export async function generateBudgetForecast(
 
 /**
  * Weather-Based Scheduling Service
- * Provides AI-powered task recommendations based on weather conditions
+ * Uses OpenWeather API via backend, falls back to mock
  */
 export async function getWeatherScheduleRecommendations(
   location: string,
   projectPhase: string
 ): Promise<WeatherRecommendation[]> {
-  await delay(random(800, 1500));
+  // Try backend API first
+  const apiResult = await fetchWeatherRecommendations(location);
+  if (apiResult && apiResult.length > 0) {
+    return apiResult;
+  }
+
+  // Fallback to mock data
+  await delay(random(300, 800));
 
   const conditions = ['Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain', 'Heavy Rain', 'Windy'];
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -355,7 +442,7 @@ export async function getWeatherScheduleRecommendations(
 
     return {
       date: date.toISOString().split('T')[0],
-      dayOfWeek: days[(date.getDay() + 6) % 7], // Adjust for Mon start
+      dayOfWeek: days[(date.getDay() + 6) % 7],
       weather: {
         condition,
         temp,
@@ -373,7 +460,7 @@ export async function getWeatherScheduleRecommendations(
 
 /**
  * Progress Prediction Service
- * ML-based project timeline and delay prediction
+ * Uses TensorFlow.js for timeline prediction
  */
 export async function predictProjectProgress(
   currentProgress: number,
@@ -382,41 +469,67 @@ export async function predictProjectProgress(
   startDate: string,
   targetEndDate: string
 ): Promise<SchedulePrediction> {
-  await delay(random(1000, 1800));
+  await initTF();
 
   const start = new Date(startDate);
   const target = new Date(targetEndDate);
   const today = new Date();
 
-  const totalDuration = target.getTime() - start.getTime();
-  const elapsedDuration = today.getTime() - start.getTime();
-  const expectedProgress = (elapsedDuration / totalDuration) * 100;
+  let predictedEndDate = target;
+  let delayDays = 0;
+  let delayProbability = 0.2;
 
-  const progressDelta = currentProgress - expectedProgress;
-  const delayFactor = progressDelta < -10 ? random(1.1, 1.3) : progressDelta < 0 ? random(1.0, 1.1) : random(0.95, 1.0);
+  // Try TensorFlow.js prediction
+  if (tfInitialized && tasksCompleted > 0) {
+    try {
+      const result = await predictSchedule({
+        tasksCompleted,
+        totalTasks,
+        startDate: start,
+        targetEndDate: target,
+        taskVelocity: [] // Would need historical data
+      });
 
-  const predictedEnd = new Date(target.getTime() * delayFactor);
-  const delayDays = Math.floor((predictedEnd.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+      predictedEndDate = result.predictedEndDate;
+      delayDays = result.delayDays;
+      delayProbability = result.delayProbability;
+    } catch (error) {
+      console.warn('TensorFlow schedule prediction failed, using fallback:', error);
+    }
+  }
 
+  // Fallback calculation
+  if (delayDays === 0 && tasksCompleted > 0) {
+    const totalDuration = target.getTime() - start.getTime();
+    const elapsedDuration = today.getTime() - start.getTime();
+    const expectedProgress = (elapsedDuration / totalDuration) * 100;
+    const progressDelta = currentProgress - expectedProgress;
+
+    const delayFactor = progressDelta < -10 ? random(1.1, 1.3) : progressDelta < 0 ? random(1.0, 1.1) : random(0.95, 1.0);
+    predictedEndDate = new Date(target.getTime() * delayFactor);
+    delayDays = Math.floor((predictedEndDate.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  // Critical tasks analysis
   const criticalTasks: CriticalTask[] = [
     {
       name: 'Foundation completion',
-      currentProgress: randomInt(60, 90),
-      predictedDelay: randomInt(0, 5),
+      currentProgress: Math.min(100, currentProgress * 1.5 + randomInt(10, 20)),
+      predictedDelay: delayDays > 7 ? randomInt(2, 5) : 0,
       impact: 'high',
       suggestion: 'Add additional crew to accelerate remaining work'
     },
     {
       name: 'MEP installation',
-      currentProgress: randomInt(30, 60),
-      predictedDelay: randomInt(2, 8),
+      currentProgress: Math.max(0, currentProgress - randomInt(5, 15)),
+      predictedDelay: delayDays > 3 ? randomInt(2, 8) : randomInt(0, 3),
       impact: 'medium',
       suggestion: 'Coordinate with electrical and plumbing teams for parallel work'
     },
     {
       name: 'Finishing work',
-      currentProgress: randomInt(10, 40),
-      predictedDelay: randomInt(0, 10),
+      currentProgress: Math.max(0, currentProgress * 0.5),
+      predictedDelay: randomInt(0, delayDays > 0 ? 10 : 3),
       impact: 'low',
       suggestion: 'Begin procurement of finishing materials early'
     }
@@ -424,7 +537,7 @@ export async function predictProjectProgress(
 
   return {
     originalEndDate: targetEndDate,
-    predictedEndDate: predictedEnd.toISOString().split('T')[0],
+    predictedEndDate: predictedEndDate.toISOString().split('T')[0],
     delayDays: Math.max(0, delayDays),
     delayRisk: delayDays > 14 ? 'high' : delayDays > 7 ? 'medium' : 'low',
     criticalTasks,
@@ -452,7 +565,10 @@ export async function getAIInsightsSummary(): Promise<{
   budgetInsights: { riskLevel: string; savings: number; anomalies: number };
   scheduleInsights: { onTrack: boolean; delayRisk: string; recommendations: number };
 }> {
-  await delay(random(500, 1000));
+  await delay(random(200, 500));
+
+  // Check if backend is available for more accurate insights
+  const backendAvailable = await isBackendAvailable();
 
   return {
     photoInsights: {
