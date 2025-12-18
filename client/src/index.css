@@ -144,6 +144,28 @@ body {
   }
 }
 
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes breathe-ring {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.5;
+  }
+}
+
 @layer utilities {
   .animate-skeleton-shimmer {
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
@@ -159,6 +181,14 @@ body {
 
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-breathe {
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+
+  .animate-breathe-ring {
+    animation: breathe-ring 2.6s ease-in-out infinite;
   }
 
   .animation-delay-100 {
