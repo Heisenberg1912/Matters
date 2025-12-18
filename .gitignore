@@ -17,6 +17,8 @@ temp/
 node_modules/
 **/node_modules/
 
+.claude/
+
 # Build output
 dist/
 build/
