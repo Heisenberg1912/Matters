@@ -3,9 +3,13 @@ import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/bottom-nav";
 import PhoneShell from "@/components/phone-shell";
 import ProgressRing from "@/components/progress-ring";
+import { Fab } from "@/components/fab";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useNotifications } from "@/hooks/use-notifications";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { useSwipe } from "@/hooks/use-swipe";
 
 const loadAsset = (path: string) => {
   try {
@@ -62,6 +66,26 @@ export default function Home() {
   const [stageIndex, setStageIndex] = useState(0);
   const navigate = useNavigate();
   const currentStage = stageSlides[stageIndex];
+  const { showToast } = useNotifications();
+
+  const menuItems = [
+    { label: "Your Subscription", path: "/subscription" },
+    { label: "Hire a Contractor", path: "/hire-contractor" },
+    { label: "Privacy Policy", path: "/privacy-policy" },
+    { label: "News & Updates", path: "/news-updates" },
+    { label: "Visit Builtattic", path: "/visit-builtattic" },
+    { label: "Settings", path: "/settings" }
+  ];
+
+  const { bind: swipeStage } = useSwipe({
+    onSwipedLeft: () => cycleStage(1),
+    onSwipedRight: () => cycleStage(-1)
+  });
+
+  const { isRefreshing, pullDistance, bind: pullBind } = usePullToRefresh(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    showToast({ type: "success", message: "Feed refreshed" });
+  });
 
   const cycleStage = (delta: number) => {
     setStageIndex((prev) => {
@@ -73,11 +97,15 @@ export default function Home() {
   const resources = useMemo(
     () => [
       { title: "Plans + Drawings", img: resourceOne, onClick: () => navigate("/plans-drawings") },
-      { title: "Site Details", img: resourceTwo },
-      { title: "Contractor Chat", img: resourceThree },
-      { title: "Site Gallery", img: resourceTwo },
-      { title: "Schedule", img: resourceOne },
-      { title: "Customer Care", img: resourceThree }
+      { title: "Site Details", img: resourceTwo, onClick: () => navigate("/site-details") },
+      { title: "Contractor Chat", img: resourceThree, onClick: () => navigate("/contractor-chat") },
+      { title: "Site Gallery", img: resourceTwo, onClick: () => navigate("/site-gallery") },
+      { title: "Schedule", img: resourceOne, onClick: () => navigate("/schedule") },
+      { title: "Customer Care", img: resourceThree, onClick: () => navigate("/customer-care") },
+      { title: "Analytics", img: resourceOne, onClick: () => navigate("/analytics") },
+      { title: "Team Management", img: resourceTwo, onClick: () => navigate("/team") },
+      { title: "Documents", img: resourceThree, onClick: () => navigate("/documents") },
+      { title: "Reports", img: resourceOne, onClick: () => navigate("/reports") }
     ],
     [navigate]
   );
@@ -86,7 +114,7 @@ export default function Home() {
     <PhoneShell>
       <Sheet>
         <div className="flex h-full flex-col">
-          <header className="flex items-center gap-10 rounded-b-[100px] border-b border-[#1f1f1f] bg-[#050505] px-24 py-16">
+          <header className="flex flex-wrap items-center gap-6 rounded-b-[60px] border-b border-[#1f1f1f] bg-[#050505] px-6 py-10 md:flex-nowrap md:px-10 lg:px-24 lg:py-16">
             <SheetTrigger asChild>
               <button type="button">
                 <Avatar className="h-16 w-16 border-2 border-[#232323]">
@@ -116,13 +144,22 @@ export default function Home() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-24 pb-44">
-            <div className="mx-auto w-full max-w-[980px]">
-              <section className="mt-16">
+          <div className="flex-1 overflow-y-auto px-6 md:px-10 lg:px-24 pb-32" {...pullBind}>
+            <div className="mx-auto w-full max-w-6xl">
+              <div
+                className="flex items-center justify-center text-sm font-semibold text-[#cfe0ad] transition"
+                style={{ opacity: pullDistance > 0 ? 1 : 0, height: pullDistance > 0 ? 24 : 0 }}
+              >
+                {isRefreshing ? "Refreshing..." : "Pull to refresh"}
+              </div>
+              <section className="mt-10 md:mt-16">
               <h2 className="text-4xl font-bold tracking-tight text-white">Current Progress</h2>
               <Card className="mt-8 border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-10">
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="flex flex-col rounded-[60px] border border-[#1f1f1f] bg-[#050505] p-10">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                  <div
+                    className="flex flex-col rounded-[40px] border border-[#1f1f1f] bg-[#050505] p-8 sm:p-10"
+                    {...swipeStage()}
+                  >
                     <div className="flex items-center justify-between text-[#bdbdbd]">
                       <button
                         type="button"
@@ -186,9 +223,9 @@ export default function Home() {
               </Card>
             </section>
 
-            <section className="mt-20">
+              <section className="mt-20">
               <h2 className="text-4xl font-bold tracking-tight text-white">Daily Insights</h2>
-              <div className="mt-8 grid grid-cols-2 gap-8">
+              <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                 {insightCards.map((card) => (
                   <div
                     key={card.id}
@@ -219,7 +256,7 @@ export default function Home() {
 
               <section className="mt-20">
                 <h2 className="text-4xl font-bold tracking-tight text-white">Resources</h2>
-                <div className="mt-10 grid grid-cols-3 gap-8">
+                <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {resources.map((resource) => (
                     <button
                       key={resource.title}
@@ -242,22 +279,22 @@ export default function Home() {
             </div>
           </div>
 
+          <Fab label="Quick add" onClick={() => showToast({ type: "info", message: "Quick action", description: "Add a new update" })}>
+            +
+          </Fab>
           <BottomNav />
         </div>
 
         <SheetContent>
           <div className="space-y-10 text-2xl">
-            {[
-              "Your Subscription",
-              "Hire a Contractor",
-              "Privacy Policy",
-              "News & Updates",
-              "Visit Builtattic",
-              "Settings"
-            ].map((item) => (
-              <p key={item} className="font-medium">
-                {item}
-              </p>
+            {menuItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className="w-full text-left font-medium transition hover:text-[#cfe0ad]"
+              >
+                {item.label}
+              </button>
             ))}
             <div className="mt-24 flex items-center gap-6 rounded-[50px] border border-[#1f1f1f] bg-[#0a0a0a] p-8">
               <Avatar className="h-16 w-16">

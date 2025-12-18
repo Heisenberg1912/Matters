@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/bottom-nav";
+import { FileUploader } from "@/components/file-uploader";
 import PhoneShell from "@/components/phone-shell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useNotifications } from "@/hooks/use-notifications";
+import { useSwipe } from "@/hooks/use-swipe";
 
 const loadAsset = (path: string) => {
   try {
@@ -51,6 +55,22 @@ export default function PlansDrawings() {
   const [index, setIndex] = useState(0);
   const plans = useMemo(() => initialPlans, []);
   const activePlan = plans[index] ?? plans[0];
+  const { showToast } = useNotifications();
+  const navigate = useNavigate();
+
+  const menuItems = [
+    { label: "Your Subscription", path: "/subscription" },
+    { label: "Hire a Contractor", path: "/hire-contractor" },
+    { label: "Privacy Policy", path: "/privacy-policy" },
+    { label: "News & Updates", path: "/news-updates" },
+    { label: "Visit Builtattic", path: "/visit-builtattic" },
+    { label: "Settings", path: "/settings" }
+  ];
+
+  const { bind: swipePlan } = useSwipe({
+    onSwipedLeft: () => go(1),
+    onSwipedRight: () => go(-1)
+  });
 
   const go = (delta: number) => {
     setIndex((prev) => {
@@ -63,7 +83,7 @@ export default function PlansDrawings() {
     <PhoneShell>
       <Sheet>
         <div className="flex h-full flex-col">
-          <header className="flex items-center gap-10 rounded-b-[100px] border-b border-[#1f1f1f] bg-[#050505] px-24 py-16">
+          <header className="flex flex-wrap items-center gap-6 rounded-b-[60px] border-b border-[#1f1f1f] bg-[#050505] px-6 py-10 md:flex-nowrap md:px-10 lg:px-24 lg:py-16">
             <SheetTrigger asChild>
               <button type="button">
                 <Avatar className="h-16 w-16 border-2 border-[#232323]">
@@ -93,19 +113,22 @@ export default function PlansDrawings() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-24 pb-44">
-            <div className="mx-auto w-full max-w-[980px]">
+          <div className="flex-1 overflow-y-auto px-6 md:px-10 lg:px-24 pb-32">
+            <div className="mx-auto w-full max-w-6xl">
               <section className="mt-16 space-y-6">
                 <h2 className="text-4xl font-bold tracking-tight text-white">Plans + Drawings</h2>
-                <button
-                  type="button"
-                  className="flex h-[360px] w-full flex-col items-center justify-center rounded-[50px] border-2 border-dashed border-[#2a2a2a] bg-[#111] text-xl text-muted"
-                >
-                  <span className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[#3a3a3a] text-5xl text-white">
-                    +
-                  </span>
-                  Upload your Plan / Drawings here
-                </button>
+                <FileUploader
+                  accept={["application/pdf", "image/*"]}
+                  maxSize={15 * 1024 * 1024}
+                  helperText="PDFs, drawings, photos. Swipe the viewer below to move between uploads."
+                  onUpload={(files) =>
+                    showToast({
+                      type: "success",
+                      message: "Plans uploaded",
+                      description: `${files.length} file(s) added`
+                    })
+                  }
+                />
               </section>
 
               <section className="mt-20">
@@ -116,7 +139,10 @@ export default function PlansDrawings() {
                     <button type="button" onClick={() => go(1)} className="rounded-full border border-[#2a2a2a] px-4 py-1">›</button>
                   </div>
                 </div>
-                <Card className="mt-8 flex h-[520px] items-center justify-center overflow-hidden rounded-[46px] border border-[#2a2a2a] bg-[#101010]">
+                <Card
+                  className="mt-8 flex h-[520px] items-center justify-center overflow-hidden rounded-[46px] border border-[#2a2a2a] bg-[#101010]"
+                  {...swipePlan()}
+                >
                   {activePlan?.src ? (
                     <img src={activePlan.src} alt={activePlan.title} className="h-full w-full object-cover" />
                   ) : (
@@ -167,17 +193,14 @@ export default function PlansDrawings() {
 
         <SheetContent>
           <div className="space-y-10 text-2xl">
-            {[
-              "Your Subscription",
-              "Hire a Contractor",
-              "Privacy Policy",
-              "News & Updates",
-              "Visit Builtattic",
-              "Settings"
-            ].map((item) => (
-              <p key={item} className="font-medium">
-                {item}
-              </p>
+            {menuItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className="w-full text-left font-medium transition hover:text-[#cfe0ad]"
+              >
+                {item.label}
+              </button>
             ))}
           </div>
         </SheetContent>
