@@ -118,51 +118,55 @@ export function InventoryItemForm({ item, open, onClose }: InventoryItemFormProp
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-semibold text-white">
+          <DialogTitle>
             {item ? "Edit Inventory Item" : "Add Inventory Item"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 xs:space-y-4 sm:space-y-5 md:space-y-6 mt-2 xs:mt-3 sm:mt-4 md:mt-6">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Item Name</FormLabel>
+                  <FormLabel className="text-xs xs:text-sm sm:text-base">Item Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter item name" {...field} />
+                    <Input
+                      placeholder="Enter item name"
+                      className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs xs:text-sm" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 xs:gap-4 sm:gap-5 md:gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Category</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
+                          <SelectItem key={cat} value={cat} className="text-sm xs:text-base">
                             {cat}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
@@ -172,43 +176,44 @@ export function InventoryItemForm({ item, open, onClose }: InventoryItemFormProp
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Storage Location</FormLabel>
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Storage Location</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base">
                           <SelectValue placeholder="Select location" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {LOCATIONS.map((loc) => (
-                          <SelectItem key={loc} value={loc}>
+                          <SelectItem key={loc} value={loc} className="text-sm xs:text-base">
                             {loc}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 xs:gap-4 sm:gap-5 md:gap-6 sm:grid-cols-3">
               <FormField
                 control={form.control}
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity</FormLabel>
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Quantity</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="0"
+                        className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
@@ -218,22 +223,22 @@ export function InventoryItemForm({ item, open, onClose }: InventoryItemFormProp
                 name="unit"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Unit</FormLabel>
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Unit</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select unit" />
+                        <SelectTrigger className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base">
+                          <SelectValue placeholder="Unit" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {UNITS.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
+                          <SelectItem key={unit} value={unit} className="text-sm xs:text-base">
                             {unit}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
@@ -242,17 +247,18 @@ export function InventoryItemForm({ item, open, onClose }: InventoryItemFormProp
                 control={form.control}
                 name="minStock"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Min Stock Level</FormLabel>
+                  <FormItem className="col-span-2 sm:col-span-1">
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Min Stock</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="10"
+                        className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
@@ -263,24 +269,26 @@ export function InventoryItemForm({ item, open, onClose }: InventoryItemFormProp
               name="cost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Unit Cost (₹)</FormLabel>
+                  <FormLabel className="text-xs xs:text-sm sm:text-base">Unit Cost (₹)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       placeholder="0"
+                      className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs xs:text-sm" />
                 </FormItem>
               )}
             />
 
-            <div className="flex justify-end gap-4 pt-4">
+            <div className="flex flex-col-reverse xs:flex-row justify-end gap-2 xs:gap-3 sm:gap-4 pt-2 xs:pt-3 sm:pt-4">
               <Button
                 type="button"
                 variant="ghost"
+                className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base px-4 xs:px-5 sm:px-6"
                 onClick={() => {
                   form.reset();
                   onClose();
@@ -288,8 +296,12 @@ export function InventoryItemForm({ item, open, onClose }: InventoryItemFormProp
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : item ? "Update Item" : "Add Item"}
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base px-4 xs:px-5 sm:px-6"
+              >
+                {form.formState.isSubmitting ? "Saving..." : item ? "Update" : "Add Item"}
               </Button>
             </div>
           </form>

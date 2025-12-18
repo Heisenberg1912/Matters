@@ -94,36 +94,36 @@ export function ExpenseForm({ expense, open, onClose }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-semibold text-white">
+          <DialogTitle>
             {expense ? "Edit Expense" : "Add New Expense"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 xs:space-y-4 sm:space-y-5 md:space-y-6 mt-2 xs:mt-3 sm:mt-4 md:mt-6">
             <FormField
               control={form.control}
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel className="text-xs xs:text-sm sm:text-base">Category</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
+                        <SelectItem key={category.id} value={category.id} className="text-sm xs:text-base">
                           {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  <FormMessage className="text-xs xs:text-sm" />
                 </FormItem>
               )}
             />
@@ -133,34 +133,36 @@ export function ExpenseForm({ expense, open, onClose }: ExpenseFormProps) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel className="text-xs xs:text-sm sm:text-base">Description</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Enter expense description"
+                      className="min-h-[80px] xs:min-h-[90px] sm:min-h-[100px] text-sm xs:text-base resize-none"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs xs:text-sm" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 xs:gap-4 sm:gap-5 md:gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount (₹)</FormLabel>
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Amount (₹)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="0"
+                        className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
@@ -170,11 +172,15 @@ export function ExpenseForm({ expense, open, onClose }: ExpenseFormProps) {
                 name="vendor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vendor</FormLabel>
+                    <FormLabel className="text-xs xs:text-sm sm:text-base">Vendor</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter vendor name" {...field} />
+                      <Input
+                        placeholder="Enter vendor name"
+                        className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
+                        {...field}
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs xs:text-sm" />
                   </FormItem>
                 )}
               />
@@ -185,19 +191,24 @@ export function ExpenseForm({ expense, open, onClose }: ExpenseFormProps) {
               name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel className="text-xs xs:text-sm sm:text-base">Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input
+                      type="date"
+                      className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs xs:text-sm" />
                 </FormItem>
               )}
             />
 
-            <div className="flex justify-end gap-4 pt-4">
+            <div className="flex flex-col-reverse xs:flex-row justify-end gap-2 xs:gap-3 sm:gap-4 pt-2 xs:pt-3 sm:pt-4">
               <Button
                 type="button"
                 variant="ghost"
+                className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base px-4 xs:px-5 sm:px-6"
                 onClick={() => {
                   form.reset();
                   onClose();
@@ -205,8 +216,12 @@ export function ExpenseForm({ expense, open, onClose }: ExpenseFormProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : expense ? "Update Expense" : "Add Expense"}
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="h-10 xs:h-11 sm:h-12 text-sm xs:text-base px-4 xs:px-5 sm:px-6"
+              >
+                {form.formState.isSubmitting ? "Saving..." : expense ? "Update" : "Add Expense"}
               </Button>
             </div>
           </form>

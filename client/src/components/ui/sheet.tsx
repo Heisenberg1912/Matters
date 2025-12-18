@@ -37,13 +37,32 @@ const SheetContent = React.forwardRef<
     <SheetPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed z-50 bg-[#121212] p-10 text-white shadow-2xl transition data-[state=open]:animate-in data-[state=closed]:animate-out",
-        side === "left" && "inset-y-0 left-0 w-[70%] max-w-[880px] rounded-r-[48px] border border-border border-l-0",
-        side === "right" && "inset-y-0 right-0 w-[70%] max-w-[880px] rounded-l-[48px] border border-border border-r-0",
-        side === "bottom" &&
-          "inset-x-0 bottom-0 top-auto w-full rounded-t-[32px] border border-border border-b-0 sm:left-1/2 sm:top-auto sm:w-[520px] sm:-translate-x-1/2",
-        side === "top" &&
-          "inset-x-0 top-0 bottom-auto w-full rounded-b-[32px] border border-border border-t-0 sm:left-1/2 sm:w-[520px] sm:-translate-x-1/2",
+        "fixed z-50 bg-[#121212] text-white shadow-2xl transition data-[state=open]:animate-in data-[state=closed]:animate-out overflow-y-auto",
+        "p-5 xs:p-6 sm:p-8 md:p-10",
+        side === "left" && [
+          "inset-y-0 left-0 border border-border border-l-0",
+          "w-[85%] xs:w-[80%] sm:w-[70%] max-w-[400px] sm:max-w-[600px] md:max-w-[880px]",
+          "rounded-r-[24px] xs:rounded-r-[32px] sm:rounded-r-[40px] md:rounded-r-[48px]",
+          "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
+        ],
+        side === "right" && [
+          "inset-y-0 right-0 border border-border border-r-0",
+          "w-[85%] xs:w-[80%] sm:w-[70%] max-w-[400px] sm:max-w-[600px] md:max-w-[880px]",
+          "rounded-l-[24px] xs:rounded-l-[32px] sm:rounded-l-[40px] md:rounded-l-[48px]",
+          "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+        ],
+        side === "bottom" && [
+          "inset-x-0 bottom-0 top-auto w-full border border-border border-b-0",
+          "rounded-t-[24px] xs:rounded-t-[28px] sm:rounded-t-[32px]",
+          "max-h-[85dvh]",
+          "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom"
+        ],
+        side === "top" && [
+          "inset-x-0 top-0 bottom-auto w-full border border-border border-t-0",
+          "rounded-b-[24px] xs:rounded-b-[28px] sm:rounded-b-[32px]",
+          "max-h-[85dvh]",
+          "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top"
+        ],
         className
       )}
       {...props}

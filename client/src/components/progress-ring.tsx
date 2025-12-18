@@ -1,17 +1,20 @@
+import { cn } from "@/lib/utils";
+
 interface ProgressRingProps {
   value: number;
   size?: number;
   strokeWidth?: number;
+  className?: string;
 }
 
-export default function ProgressRing({ value, size = 120, strokeWidth = 10 }: ProgressRingProps) {
+export default function ProgressRing({ value, size = 120, strokeWidth = 10, className }: ProgressRingProps) {
   const normalized = Math.min(Math.max(value, 0), 100);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (normalized / 100) * circumference;
 
   return (
-    <svg width={size} height={size} className="text-[var(--pill,#cfe0ad)]">
+    <svg width={size} height={size} className={cn("text-[var(--pill,#cfe0ad)]", className)}>
       <circle
         stroke="#1e1e1e"
         fill="transparent"
