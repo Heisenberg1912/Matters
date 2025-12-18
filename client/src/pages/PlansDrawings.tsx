@@ -8,16 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useSwipe } from "@/hooks/use-swipe";
-
-const loadAsset = (path: string) => {
-  try {
-    return new URL(path, import.meta.url).href;
-  } catch {
-    return undefined;
-  }
-};
-
-const planPlaceholder = loadAsset("../assets/placeholders/plan-placeholder.png");
+import planPlaceholder from "../assets/placeholders/plan-placeholder.png";
 
 const initialPlans = [
   {

@@ -9,16 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Calendar, Camera, Download, Share2 } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useSwipe } from "@/hooks/use-swipe";
-
-const loadAsset = (path: string) => {
-  try {
-    return new URL(path, import.meta.url).href;
-  } catch {
-    return undefined;
-  }
-};
-
-const placeholderImg = loadAsset("../assets/placeholders/resource-1.jpg");
+import placeholderImg from "../assets/placeholders/resource-1.jpg";
 
 const galleryCategories = ["All", "Foundation", "Structure", "Electrical", "Plumbing", "Finishing"];
 

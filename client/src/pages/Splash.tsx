@@ -1,14 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneShell from "@/components/phone-shell";
-
-const splashLogo = (() => {
-  try {
-    return new URL("../assets/branding/splash-logo.svg", import.meta.url).href;
-  } catch {
-    return "";
-  }
-})();
+import splashLogo from "../assets/branding/splash-logo.svg";
 
 export default function Splash() {
   const navigate = useNavigate();
