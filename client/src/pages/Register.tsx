@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PhoneShell from '@/components/phone-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -267,6 +268,17 @@ export default function Register() {
                 </span>
               )}
             </Button>
+
+            <div className="flex items-center gap-4 my-4">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-sm text-gray-500">or</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <GoogleSignInButton
+              onSuccess={() => navigate('/home')}
+              onError={(message) => setLocalError(message)}
+            />
 
             <p className="text-xs text-gray-500 text-center">
               By signing up, you agree to our{' '}

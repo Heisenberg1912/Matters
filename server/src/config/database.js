@@ -1,7 +1,38 @@
 import mongoose from 'mongoose';
 
+const state = globalThis.__mattersMongo || {
+  conn: null,
+  promise: null,
+  listenersAttached: false,
+};
+
+globalThis.__mattersMongo = state;
+
+const attachListeners = () => {
+  if (state.listenersAttached) {
+    return;
+  }
+  state.listenersAttached = true;
+
+  mongoose.connection.on('error', (err) => {
+    console.error('MongoDB connection error:', err);
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    console.warn('MongoDB disconnected. Attempting to reconnect...');
+  });
+
+  mongoose.connection.on('reconnected', () => {
+    console.log('MongoDB reconnected');
+  });
+};
+
 const connectDB = async () => {
-  try {
+  if (state.conn) {
+    return state.conn;
+  }
+
+  if (!state.promise) {
     const mongoURI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
     if (!mongoURI) {
@@ -15,29 +46,16 @@ const connectDB = async () => {
       socketTimeoutMS: 45000,
     };
 
-    const conn = await mongoose.connect(mongoURI, options);
-
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    console.log(`Database: ${conn.connection.name}`);
-
-    // Handle connection events
-    mongoose.connection.on('error', (err) => {
-      console.error('MongoDB connection error:', err);
+    state.promise = mongoose.connect(mongoURI, options).then((conn) => {
+      attachListeners();
+      console.log(`MongoDB Connected: ${conn.connection.host}`);
+      console.log(`Database: ${conn.connection.name}`);
+      return conn;
     });
-
-    mongoose.connection.on('disconnected', () => {
-      console.warn('MongoDB disconnected. Attempting to reconnect...');
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      console.log('MongoDB reconnected');
-    });
-
-    return conn;
-  } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    process.exit(1);
   }
+
+  state.conn = await state.promise;
+  return state.conn;
 };
 
 export default connectDB;

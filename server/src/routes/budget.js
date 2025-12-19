@@ -3,6 +3,7 @@ import Bill from '../models/Bill.js';
 import Project from '../models/Project.js';
 import Stage from '../models/Stage.js';
 import { authenticate } from '../middleware/auth.js';
+import { triggerProjectEvent } from '../utils/realtime.js';
 
 const router = express.Router();
 
@@ -273,6 +274,8 @@ router.post('/', authenticate, async (req, res) => {
       .populate('createdBy', 'name email')
       .populate('stage', 'name');
 
+    await triggerProjectEvent(projectId, 'budget.bill.created', { bill: populatedBill });
+
     res.status(201).json({
       success: true,
       message: 'Bill created successfully.',
@@ -334,6 +337,8 @@ router.patch('/:id', authenticate, async (req, res) => {
       .populate('createdBy', 'name email')
       .populate('stage', 'name');
 
+    await triggerProjectEvent(updatedBill.project, 'budget.bill.updated', { bill: updatedBill });
+
     res.json({
       success: true,
       message: 'Bill updated successfully.',
@@ -380,6 +385,8 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 
     await bill.deleteOne();
+
+    await triggerProjectEvent(bill.project, 'budget.bill.deleted', { billId: bill._id });
 
     res.json({
       success: true,
@@ -431,6 +438,8 @@ router.post('/:id/payment', authenticate, async (req, res) => {
       .populate('createdBy', 'name email')
       .populate('stage', 'name');
 
+    await triggerProjectEvent(updatedBill.project, 'budget.bill.payment', { bill: updatedBill });
+
     res.json({
       success: true,
       message: 'Payment added successfully.',
@@ -467,6 +476,8 @@ router.post('/:id/approve', authenticate, async (req, res) => {
     const updatedBill = await Bill.findById(bill._id)
       .populate('createdBy', 'name email')
       .populate('approval.approvedBy', 'name email');
+
+    await triggerProjectEvent(updatedBill.project, 'budget.bill.approved', { bill: updatedBill });
 
     res.json({
       success: true,
@@ -511,6 +522,8 @@ router.post('/:id/reject', authenticate, async (req, res) => {
     const updatedBill = await Bill.findById(bill._id)
       .populate('createdBy', 'name email')
       .populate('approval.rejectedBy', 'name email');
+
+    await triggerProjectEvent(updatedBill.project, 'budget.bill.rejected', { bill: updatedBill });
 
     res.json({
       success: true,

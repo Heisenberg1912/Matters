@@ -2,6 +2,7 @@ import express from 'express';
 import Stage from '../models/Stage.js';
 import Project from '../models/Project.js';
 import { authenticate } from '../middleware/auth.js';
+import { triggerProjectEvent } from '../utils/realtime.js';
 
 const router = express.Router();
 
@@ -139,6 +140,8 @@ router.post('/', authenticate, async (req, res) => {
     project.stages.push(stage._id);
     await project.save();
 
+    await triggerProjectEvent(projectId, 'stage.created', { stage });
+
     res.status(201).json({
       success: true,
       message: 'Stage created successfully.',
@@ -240,6 +243,8 @@ router.patch('/:id', authenticate, async (req, res) => {
       .populate('tasks.assignee', 'name email avatar')
       .populate('checklist.completedBy', 'name email');
 
+    await triggerProjectEvent(stage.project, 'stage.updated', { stage: updatedStage });
+
     res.json({
       success: true,
       message: 'Stage updated successfully.',
@@ -275,6 +280,8 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
 
     await stage.deleteOne();
+
+    await triggerProjectEvent(stage.project, 'stage.deleted', { stageId: stage._id });
 
     res.json({
       success: true,
@@ -325,6 +332,11 @@ router.post('/:id/tasks', authenticate, async (req, res) => {
       'tasks.assignee',
       'name email avatar'
     );
+
+    await triggerProjectEvent(stage.project, 'stage.tasks.updated', {
+      stageId: stage._id,
+      tasks: updatedStage.tasks,
+    });
 
     res.status(201).json({
       success: true,
@@ -387,6 +399,11 @@ router.patch('/:id/tasks/:taskId', authenticate, async (req, res) => {
       'name email avatar'
     );
 
+    await triggerProjectEvent(stage.project, 'stage.tasks.updated', {
+      stageId: stage._id,
+      tasks: updatedStage.tasks,
+    });
+
     res.json({
       success: true,
       message: 'Task updated successfully.',
@@ -418,6 +435,11 @@ router.delete('/:id/tasks/:taskId', authenticate, async (req, res) => {
 
     stage.tasks.pull(req.params.taskId);
     await stage.save();
+
+    await triggerProjectEvent(stage.project, 'stage.tasks.updated', {
+      stageId: stage._id,
+      tasks: stage.tasks,
+    });
 
     res.json({
       success: true,
@@ -459,6 +481,11 @@ router.post('/:id/checklist', authenticate, async (req, res) => {
     stage.checklist.push({ item });
     await stage.save();
 
+    await triggerProjectEvent(stage.project, 'stage.checklist.updated', {
+      stageId: stage._id,
+      checklist: stage.checklist,
+    });
+
     res.status(201).json({
       success: true,
       message: 'Checklist item added successfully.',
@@ -494,6 +521,11 @@ router.patch('/:id/checklist/:itemId/toggle', authenticate, async (req, res) => 
       'checklist.completedBy',
       'name email'
     );
+
+    await triggerProjectEvent(stage.project, 'stage.checklist.updated', {
+      stageId: stage._id,
+      checklist: updatedStage.checklist,
+    });
 
     res.json({
       success: true,
@@ -544,6 +576,11 @@ router.post('/:id/notes', authenticate, async (req, res) => {
       'name email avatar'
     );
 
+    await triggerProjectEvent(stage.project, 'stage.notes.updated', {
+      stageId: stage._id,
+      notes: updatedStage.notes,
+    });
+
     res.status(201).json({
       success: true,
       message: 'Note added successfully.',
@@ -581,6 +618,8 @@ router.post('/reorder', authenticate, async (req, res) => {
     await Promise.all(updatePromises);
 
     const stages = await Stage.findByProject(projectId);
+
+    await triggerProjectEvent(projectId, 'stage.reordered', { stages });
 
     res.json({
       success: true,

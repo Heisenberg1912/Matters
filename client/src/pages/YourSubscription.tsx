@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CheckCircle2, Crown, CreditCard, Calendar, ArrowLeft } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
+import { paymentsApi } from "@/lib/api";
+import { loadRazorpayScript } from "@/lib/razorpay";
+import { useAuth } from "@/context/AuthContext";
 
 const plans = [
   {
@@ -67,8 +70,10 @@ const billingHistory = [
 
 export default function YourSubscription() {
   const [mode, setMode] = useState<"construction" | "refurbish">("construction");
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const { showToast } = useNotifications();
+  const { user } = useAuth();
 
   const currentPlan = plans.find(p => p.current) || plans[0];
 
@@ -80,6 +85,67 @@ export default function YourSubscription() {
     { label: "Visit Builtattic", path: "/visit-builtattic" },
     { label: "Settings", path: "/settings" }
   ];
+
+  const handleUpgrade = async (plan: (typeof plans)[number]) => {
+    if (plan.price <= 0) {
+      showToast({ type: 'info', message: 'This plan is free.' });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      await loadRazorpayScript();
+      if (!window.Razorpay) {
+        throw new Error('Payment gateway failed to load.');
+      }
+
+      const orderResponse = await paymentsApi.createRazorpayOrder({
+        amount: plan.price,
+        planId: plan.id,
+      });
+
+      if (!orderResponse.success || !orderResponse.data) {
+        throw new Error(orderResponse.error || 'Failed to create payment order.');
+      }
+
+      const { order, keyId } = orderResponse.data;
+      const razorpay = new window.Razorpay({
+        key: keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Builtattic",
+        description: `${plan.name} plan`,
+        order_id: order.id,
+        prefill: {
+          name: user?.name,
+          email: user?.email,
+          contact: user?.phone,
+        },
+        notes: {
+          planId: plan.id,
+        },
+        theme: {
+          color: "#cfe0ad",
+        },
+        handler: async (response) => {
+          const verifyResponse = await paymentsApi.verifyRazorpayPayment(response);
+          if (verifyResponse.success) {
+            showToast({ type: 'success', message: 'Payment verified successfully.' });
+          } else {
+            showToast({ type: 'error', message: verifyResponse.error || 'Payment verification failed.' });
+          }
+        },
+      });
+
+      razorpay.open();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to start payment.';
+      showToast({ type: 'error', message });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <PhoneShell>
@@ -200,10 +266,10 @@ export default function YourSubscription() {
                             ? "bg-[#2a2a2a] text-[#8a8a8a] cursor-not-allowed"
                             : "bg-[#cfe0ad] text-black hover:bg-[#d4e4b8]"
                         }`}
-                        disabled={plan.current}
-                        onClick={() => showToast({ type: 'success', message: `Upgrading to ${plan.name}` })}
+                        disabled={plan.current || isProcessing}
+                        onClick={() => handleUpgrade(plan)}
                       >
-                        {plan.current ? "Current Plan" : "Upgrade"}
+                        {plan.current ? "Current Plan" : isProcessing ? "Processing..." : "Upgrade"}
                       </button>
                     </Card>
                   ))}

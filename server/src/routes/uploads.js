@@ -4,6 +4,7 @@ import Project from '../models/Project.js';
 import Stage from '../models/Stage.js';
 import { authenticate } from '../middleware/auth.js';
 import { uploadToGoogleDrive, deleteFromGoogleDrive, getFileUrl } from '../utils/googleDrive.js';
+import { triggerProjectEvent } from '../utils/realtime.js';
 
 const router = express.Router();
 
@@ -199,6 +200,8 @@ router.post('/', authenticate, async (req, res) => {
       .populate('uploadedBy', 'name email avatar')
       .populate('stage', 'name');
 
+    await triggerProjectEvent(projectId, 'upload.created', { upload: populatedUpload });
+
     res.status(201).json({
       success: true,
       message: 'Upload created successfully.',
@@ -309,6 +312,8 @@ router.post('/upload', authenticate, async (req, res) => {
       .populate('uploadedBy', 'name email avatar')
       .populate('stage', 'name');
 
+    await triggerProjectEvent(projectId, 'upload.created', { upload: populatedUpload });
+
     res.status(201).json({
       success: true,
       message: 'File uploaded successfully.',
@@ -354,6 +359,8 @@ router.patch('/:id', authenticate, async (req, res) => {
     )
       .populate('uploadedBy', 'name email avatar')
       .populate('stage', 'name');
+
+    await triggerProjectEvent(updatedUpload.project, 'upload.updated', { upload: updatedUpload });
 
     res.json({
       success: true,
@@ -408,6 +415,8 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 
     await upload.deleteOne();
+
+    await triggerProjectEvent(upload.project, 'upload.deleted', { uploadId: upload._id });
 
     res.json({
       success: true,
@@ -484,6 +493,11 @@ router.post('/:id/comment', authenticate, async (req, res) => {
       'name email avatar'
     );
 
+    await triggerProjectEvent(upload.project, 'upload.comment.added', {
+      uploadId: upload._id,
+      comments: updatedUpload.comments,
+    });
+
     res.status(201).json({
       success: true,
       message: 'Comment added successfully.',
@@ -536,6 +550,11 @@ router.post('/:id/analyze', authenticate, async (req, res) => {
     };
 
     await upload.updateAnalysis(analysisResult);
+
+    await triggerProjectEvent(upload.project, 'upload.analysis.updated', {
+      uploadId: upload._id,
+      analysis: upload.analysis,
+    });
 
     res.json({
       success: true,

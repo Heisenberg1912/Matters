@@ -201,7 +201,7 @@ export const rateLimit = (options = {}) => {
 };
 
 // Clean up rate limit store periodically
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {
     if (now > record.resetTime) {
@@ -209,5 +209,7 @@ setInterval(() => {
     }
   }
 }, 60000); // Clean up every minute
+
+cleanupInterval.unref();
 
 export default authenticate;

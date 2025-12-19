@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import { authenticate } from '../middleware/auth.js';
+import { triggerProjectEvent, triggerUserEvent } from '../utils/realtime.js';
 import Project from '../models/Project.js';
 import Stage from '../models/Stage.js';
 import Bill from '../models/Bill.js';
@@ -147,6 +148,18 @@ ${context ? `Additional Context: ${context}` : ''}`;
           conversationId: chatId,
         },
       });
+
+      await Promise.all([
+        triggerUserEvent(req.userId, 'chat.message', {
+          projectId: projectId || null,
+          message: { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString() },
+        }),
+        projectId
+          ? triggerProjectEvent(projectId, 'chat.message', {
+              message: { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString() },
+            })
+          : Promise.resolve(false),
+      ]);
     } catch (geminiError) {
       console.error('Gemini API error:', geminiError.response?.data || geminiError.message);
 

@@ -6,6 +6,8 @@ import { useDocumentStore } from '../store/documentStore';
 import { useTeamStore } from '../store/teamStore';
 import { useChatStore } from '../store/chatStore';
 import { useAuth } from './AuthContext';
+import { getProjectChannelName, subscribeToChannel, unsubscribeFromChannel } from '@/lib/realtime';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface ProjectContextType {
   currentProject: Project | null;
@@ -26,6 +28,7 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const { showToast } = useNotifications();
   const [currentProject, setCurrentProjectState] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +40,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchDocuments = useDocumentStore((state) => state.fetchDocuments);
   const fetchTeamMembers = useTeamStore((state) => state.fetchTeamMembers);
   const loadChatHistory = useChatStore((state) => state.loadHistory);
+  const appendChatMessage = useChatStore((state) => state.appendMessage);
 
   // Sync all stores with current project data
   const syncAllStores = useCallback(async () => {
@@ -194,6 +198,120 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       syncAllStores();
     }
   }, [currentProject?._id, isAuthenticated, syncAllStores]);
+
+  useEffect(() => {
+    if (!currentProject?._id || !isAuthenticated) {
+      return () => undefined;
+    }
+
+    const channelName = getProjectChannelName(currentProject._id);
+    const channel = subscribeToChannel(channelName);
+
+    if (!channel) {
+      return () => undefined;
+    }
+
+    const handleProjectUpdated = (payload: { project?: Project }) => {
+      if (payload.project?._id === currentProject._id) {
+        setCurrentProjectState(payload.project);
+      }
+    };
+
+    const handleBudgetUpdate = () => {
+      fetchBudgetData(currentProject._id);
+    };
+
+    const handleInventoryUpdate = () => {
+      fetchInventoryData(currentProject._id);
+    };
+
+    const handleUploadsUpdate = () => {
+      fetchDocuments(currentProject._id);
+    };
+
+    const handleTeamUpdate = () => {
+      fetchTeamMembers(currentProject._id);
+    };
+
+    const handleChatMessage = (payload: { message?: { role: 'user' | 'assistant'; content: string; timestamp: string } }) => {
+      if (!payload.message) {
+        return;
+      }
+      appendChatMessage(payload.message);
+    };
+
+    const handleStageUpdate = () => {
+      showToast({
+        type: 'info',
+        message: 'Stage updated',
+        description: 'Project stages were updated.',
+      });
+    };
+
+    channel.bind('project.updated', handleProjectUpdated);
+    channel.bind('budget.bill.created', handleBudgetUpdate);
+    channel.bind('budget.bill.updated', handleBudgetUpdate);
+    channel.bind('budget.bill.deleted', handleBudgetUpdate);
+    channel.bind('budget.bill.payment', handleBudgetUpdate);
+    channel.bind('budget.bill.approved', handleBudgetUpdate);
+    channel.bind('budget.bill.rejected', handleBudgetUpdate);
+    channel.bind('inventory.item.created', handleInventoryUpdate);
+    channel.bind('inventory.item.updated', handleInventoryUpdate);
+    channel.bind('inventory.item.deleted', handleInventoryUpdate);
+    channel.bind('inventory.item.adjusted', handleInventoryUpdate);
+    channel.bind('inventory.bulk.created', handleInventoryUpdate);
+    channel.bind('upload.created', handleUploadsUpdate);
+    channel.bind('upload.updated', handleUploadsUpdate);
+    channel.bind('upload.deleted', handleUploadsUpdate);
+    channel.bind('upload.comment.added', handleUploadsUpdate);
+    channel.bind('stage.created', handleStageUpdate);
+    channel.bind('stage.updated', handleStageUpdate);
+    channel.bind('stage.deleted', handleStageUpdate);
+    channel.bind('stage.tasks.updated', handleStageUpdate);
+    channel.bind('stage.checklist.updated', handleStageUpdate);
+    channel.bind('stage.notes.updated', handleStageUpdate);
+    channel.bind('stage.reordered', handleStageUpdate);
+    channel.bind('team.updated', handleTeamUpdate);
+    channel.bind('chat.message', handleChatMessage);
+
+    return () => {
+      channel.unbind('project.updated', handleProjectUpdated);
+      channel.unbind('budget.bill.created', handleBudgetUpdate);
+      channel.unbind('budget.bill.updated', handleBudgetUpdate);
+      channel.unbind('budget.bill.deleted', handleBudgetUpdate);
+      channel.unbind('budget.bill.payment', handleBudgetUpdate);
+      channel.unbind('budget.bill.approved', handleBudgetUpdate);
+      channel.unbind('budget.bill.rejected', handleBudgetUpdate);
+      channel.unbind('inventory.item.created', handleInventoryUpdate);
+      channel.unbind('inventory.item.updated', handleInventoryUpdate);
+      channel.unbind('inventory.item.deleted', handleInventoryUpdate);
+      channel.unbind('inventory.item.adjusted', handleInventoryUpdate);
+      channel.unbind('inventory.bulk.created', handleInventoryUpdate);
+      channel.unbind('upload.created', handleUploadsUpdate);
+      channel.unbind('upload.updated', handleUploadsUpdate);
+      channel.unbind('upload.deleted', handleUploadsUpdate);
+      channel.unbind('upload.comment.added', handleUploadsUpdate);
+      channel.unbind('stage.created', handleStageUpdate);
+      channel.unbind('stage.updated', handleStageUpdate);
+      channel.unbind('stage.deleted', handleStageUpdate);
+      channel.unbind('stage.tasks.updated', handleStageUpdate);
+      channel.unbind('stage.checklist.updated', handleStageUpdate);
+      channel.unbind('stage.notes.updated', handleStageUpdate);
+      channel.unbind('stage.reordered', handleStageUpdate);
+      channel.unbind('team.updated', handleTeamUpdate);
+      channel.unbind('chat.message', handleChatMessage);
+      unsubscribeFromChannel(channelName);
+    };
+  }, [
+    appendChatMessage,
+    currentProject?._id,
+    fetchBudgetData,
+    fetchDocuments,
+    fetchInventoryData,
+    fetchTeamMembers,
+    isAuthenticated,
+    showToast,
+  ]);
 
   // Fetch projects on mount when authenticated
   useEffect(() => {

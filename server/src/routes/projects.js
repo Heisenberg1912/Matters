@@ -2,6 +2,7 @@ import express from 'express';
 import Project from '../models/Project.js';
 import Stage from '../models/Stage.js';
 import { authenticate, authorize } from '../middleware/auth.js';
+import { triggerProjectEvent, triggerUserEvent } from '../utils/realtime.js';
 
 const router = express.Router();
 
@@ -176,6 +177,11 @@ router.post('/', authenticate, async (req, res) => {
       .populate('stages')
       .populate('currentStage');
 
+    await Promise.all([
+      triggerProjectEvent(project._id, 'project.created', { project: populatedProject }),
+      triggerUserEvent(req.userId, 'project.created', { project: populatedProject }),
+    ]);
+
     res.status(201).json({
       success: true,
       message: 'Project created successfully.',
@@ -249,6 +255,8 @@ router.patch('/:id', authenticate, async (req, res) => {
       .populate('currentStage')
       .populate('stages');
 
+    await triggerProjectEvent(project._id, 'project.updated', { project: updatedProject });
+
     res.json({
       success: true,
       message: 'Project updated successfully.',
@@ -294,6 +302,11 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     // Delete the project
     await project.deleteOne();
+
+    await Promise.all([
+      triggerProjectEvent(project._id, 'project.deleted', { projectId: project._id }),
+      triggerUserEvent(req.userId, 'project.deleted', { projectId: project._id }),
+    ]);
 
     res.json({
       success: true,
@@ -341,6 +354,8 @@ router.post('/:id/team', authenticate, async (req, res) => {
       'name email avatar'
     );
 
+    await triggerProjectEvent(project._id, 'team.updated', { team: updatedProject.team });
+
     res.json({
       success: true,
       message: 'Team member added successfully.',
@@ -380,6 +395,8 @@ router.delete('/:id/team/:userId', authenticate, async (req, res) => {
     }
 
     await project.removeTeamMember(req.params.userId);
+
+    await triggerProjectEvent(project._id, 'team.updated', { team: project.team });
 
     res.json({
       success: true,

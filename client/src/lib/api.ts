@@ -6,7 +6,9 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000');
 const API_PREFIX = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Storage keys for auth tokens
@@ -704,6 +706,22 @@ export const mlApi = {
   },
 };
 
+// ===== PAYMENTS API =====
+export const paymentsApi = {
+  createRazorpayOrder: async (data: { amount: number; currency?: string; receipt?: string; notes?: Record<string, string>; planId?: string }) => {
+    const response = await api.post<ApiResponse<{ order: { id: string; amount: number; currency: string }; keyId: string }>>(
+      '/payments/razorpay/order',
+      data
+    );
+    return response.data;
+  },
+
+  verifyRazorpayPayment: async (data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+    const response = await api.post<ApiResponse<{ verified: boolean }>>('/payments/razorpay/verify', data);
+    return response.data;
+  },
+};
+
 // ===== TEAM API (using projects endpoints) =====
 export const teamApi = {
   getTeam: async (projectId: string) => {
@@ -816,6 +834,7 @@ export default {
   chat: chatApi,
   stages: stagesApi,
   ml: mlApi,
+  payments: paymentsApi,
   team: teamApi,
   documents: documentsApi,
   reports: reportsApi,

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, authStorage, type User, type AuthTokens } from '../lib/api';
+import { getUserChannelName, resetPusherClient, subscribeToChannel, unsubscribeFromChannel } from '@/lib/realtime';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +23,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { showToast } = useNotifications();
   const [user, setUser] = useState<User | null>(authStorage.getUser());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.login(email, password);
       if (response.success && response.data?.user) {
         setUser(response.data.user);
+        resetPusherClient();
       } else {
         throw new Error(response.error || 'Login failed');
       }
@@ -77,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.googleAuth(credential, clientId);
       if (response.success && response.data?.user) {
         setUser(response.data.user);
+        resetPusherClient();
       } else {
         throw new Error(response.error || 'Google login failed');
       }
@@ -96,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.register(data);
       if (response.success && response.data?.user) {
         setUser(response.data.user);
+        resetPusherClient();
       } else {
         throw new Error(response.error || 'Registration failed');
       }
@@ -116,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', err);
     } finally {
       setUser(null);
+      resetPusherClient();
       setIsLoading(false);
     }
   }, []);
@@ -206,6 +213,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearError = useCallback(() => {
     setError(null);
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?._id) {
+      return () => undefined;
+    }
+
+    const channelName = getUserChannelName(user._id);
+    const channel = subscribeToChannel(channelName);
+
+    if (!channel) {
+      return () => undefined;
+    }
+
+    const handleProjectCreated = (payload: { project?: { name?: string } }) => {
+      showToast({
+        type: 'success',
+        message: 'Project created',
+        description: payload.project?.name || 'A new project is ready.',
+      });
+    };
+
+    const handleProjectDeleted = () => {
+      showToast({
+        type: 'warning',
+        message: 'Project removed',
+        description: 'A project was deleted.',
+      });
+    };
+
+    channel.bind('project.created', handleProjectCreated);
+    channel.bind('project.deleted', handleProjectDeleted);
+
+    return () => {
+      channel.unbind('project.created', handleProjectCreated);
+      channel.unbind('project.deleted', handleProjectDeleted);
+      unsubscribeFromChannel(channelName);
+    };
+  }, [isAuthenticated, showToast, user?._id]);
 
   const value: AuthContextType = {
     user,

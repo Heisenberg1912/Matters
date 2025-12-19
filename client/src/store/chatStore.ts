@@ -14,6 +14,7 @@ interface ChatStore {
   clearHistory: (projectId?: string) => Promise<void>;
   loadHistory: (projectId: string) => Promise<void>;
   getSuggestions: (projectId?: string) => Promise<Array<{ type: string; title: string; message: string }>>;
+  appendMessage: (message: ChatMessage) => void;
   reset: () => void;
 }
 
@@ -169,6 +170,12 @@ export const useChatStore = create<ChatStore>()(
           console.error('Failed to get suggestions:', error);
         }
         return [];
+      },
+
+      appendMessage: (message: ChatMessage) => {
+        set((state) => ({
+          messages: [...state.messages, message],
+        }));
       },
 
       reset: () => {

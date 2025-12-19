@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { authenticate } from '../middleware/auth.js';
+import { triggerProjectEvent } from '../utils/realtime.js';
 import Project from '../models/Project.js';
 
 const router = express.Router();
@@ -308,6 +309,8 @@ router.post('/', authenticate, async (req, res) => {
       'name email'
     );
 
+    await triggerProjectEvent(projectId, 'inventory.item.created', { item: populatedItem });
+
     res.status(201).json({
       success: true,
       message: 'Inventory item created successfully.',
@@ -369,6 +372,8 @@ router.patch('/:id', authenticate, async (req, res) => {
       { new: true, runValidators: true }
     ).populate('createdBy', 'name email');
 
+    await triggerProjectEvent(updatedItem.project, 'inventory.item.updated', { item: updatedItem });
+
     res.json({
       success: true,
       message: 'Inventory item updated successfully.',
@@ -399,6 +404,8 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 
     await item.deleteOne();
+
+    await triggerProjectEvent(item.project, 'inventory.item.deleted', { itemId: item._id });
 
     res.json({
       success: true,
@@ -458,6 +465,8 @@ router.post('/:id/adjust', authenticate, async (req, res) => {
 
     await item.save();
 
+    await triggerProjectEvent(item.project, 'inventory.item.adjusted', { item });
+
     res.json({
       success: true,
       message: `Quantity ${adjustment > 0 ? 'increased' : 'decreased'} successfully.`,
@@ -504,6 +513,10 @@ router.post('/bulk', authenticate, async (req, res) => {
     }));
 
     const createdItems = await InventoryItem.insertMany(inventoryItems);
+
+    await triggerProjectEvent(projectId, 'inventory.bulk.created', {
+      count: createdItems.length,
+    });
 
     res.status(201).json({
       success: true,
