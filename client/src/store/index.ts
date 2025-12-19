@@ -8,3 +8,5 @@ export * from './contractorStore';
 export * from './teamStore';
 export * from './documentStore';
 export * from './reportStore';
+export * from './chatStore';
+export * from './uploadsStore';

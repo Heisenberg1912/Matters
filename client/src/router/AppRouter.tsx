@@ -3,6 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import Home from "@/pages/Home";
 import PlansDrawings from "@/pages/PlansDrawings";
 import Splash from "@/pages/Splash";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import Budget from "@/pages/Budget";
 import Inventory from "@/pages/Inventory";
 import Contractor from "@/pages/Contractor";
@@ -29,6 +31,8 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Splash />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/home" element={<Home />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/team" element={<TeamManagement />} />
