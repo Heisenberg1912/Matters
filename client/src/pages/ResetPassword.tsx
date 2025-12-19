@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import PhoneShell from "@/components/phone-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowRight, Mail } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ResetPassword() {
   const { resetPassword, isLoading, error, clearError } = useAuth();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,8 +22,8 @@ export default function ResetPassword() {
     setLocalError("");
     clearError();
 
-    if (!token) {
-      setLocalError("Reset token is missing or invalid.");
+    if (!code.trim()) {
+      setLocalError("Reset code is missing or invalid.");
       return;
     }
 
@@ -39,7 +38,7 @@ export default function ResetPassword() {
     }
 
     try {
-      await resetPassword(token, password);
+      await resetPassword(code.trim(), password);
       setSuccess(true);
     } catch {
       // handled by context
@@ -60,7 +59,7 @@ export default function ResetPassword() {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Create New Password</h1>
-          <p className="text-gray-600 mt-2">Use a strong password to secure your account.</p>
+          <p className="text-gray-600 mt-2">Enter the code from your email, then choose a new password.</p>
         </div>
 
         <div className="flex-1 px-6">
@@ -75,6 +74,22 @@ export default function ResetPassword() {
                   {displayError}
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="code">Reset Code</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    id="code"
+                    type="text"
+                    placeholder="Enter the code from your email"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="pl-10 h-12 rounded-xl"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>

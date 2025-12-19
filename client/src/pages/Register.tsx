@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PhoneShell from '@/components/phone-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,7 +78,7 @@ const inputFocusVariants = {
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, isLoading, error, clearError } = useAuth();
+  const { register, verifyEmail, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -91,6 +90,8 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -120,21 +121,44 @@ export default function Register() {
     }
 
     try {
-      await register({
+      const result = await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
         role: formData.role,
       });
-      const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
-      navigate(redirectTo);
+      if (result.status === 'complete') {
+        const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
+        navigate(redirectTo);
+      } else {
+        setNeedsVerification(true);
+      }
     } catch {
       // Error is handled by context
     }
   };
 
   const displayError = localError || error;
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError('');
+    clearError();
+
+    if (!verificationCode.trim()) {
+      setLocalError('Please enter the verification code');
+      return;
+    }
+
+    try {
+      await verifyEmail(verificationCode.trim());
+      const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
+      navigate(redirectTo);
+    } catch {
+      // Error is handled by context
+    }
+  };
 
   return (
     <PhoneShell>
@@ -196,11 +220,98 @@ export default function Register() {
 
           {/* Form */}
           <div className="flex-1 px-6 overflow-y-auto pb-4">
-            <motion.form
-              onSubmit={handleSubmit}
-              className="space-y-4"
-              variants={containerVariants}
-            >
+            {needsVerification ? (
+              <motion.form
+                onSubmit={handleVerify}
+                className="space-y-4"
+                variants={containerVariants}
+              >
+                <AnimatePresence mode="wait">
+                  {displayError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-2xl text-sm backdrop-blur-sm"
+                    >
+                      {displayError}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <motion.div variants={itemVariants} className="space-y-2 text-center">
+                  <p className="text-sm text-muted">
+                    We sent a verification code to <span className="text-foreground">{formData.email}</span>.
+                  </p>
+                  <p className="text-xs text-muted">Enter the code below to activate your account.</p>
+                </motion.div>
+
+                <motion.div variants={itemVariants} className="space-y-2">
+                  <Label htmlFor="verificationCode" className="text-foreground/80 text-sm font-medium pl-1">Verification Code *</Label>
+                  <motion.div
+                    className="relative"
+                    variants={inputFocusVariants}
+                    animate={focusedInput === 'verificationCode' ? 'focus' : 'rest'}
+                  >
+                    <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-300 ${
+                      focusedInput === 'verificationCode' ? 'text-pill' : 'text-muted'
+                    }`} />
+                    <Input
+                      id="verificationCode"
+                      name="verificationCode"
+                      type="text"
+                      placeholder="Enter code"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      onFocus={() => setFocusedInput('verificationCode')}
+                      onBlur={() => setFocusedInput(null)}
+                      className="pl-12 h-12 rounded-2xl bg-card border-border text-foreground placeholder:text-muted/50 focus:border-pill focus:ring-pill/20 transition-all duration-300"
+                      disabled={isLoading}
+                    />
+                  </motion.div>
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      type="submit"
+                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-pill to-pill/80 hover:from-pill/90 hover:to-pill/70 text-background font-semibold shadow-lg shadow-pill/25 transition-all duration-300"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <span className="flex items-center gap-3">
+                          <motion.span
+                            className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          />
+                          Verifying...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          Verify Email
+                          <motion.span
+                            animate={{ x: [0, 4, 0] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            <ArrowRight className="w-5 h-5" />
+                          </motion.span>
+                        </span>
+                      )}
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              </motion.form>
+            ) : (
+              <motion.form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+                variants={containerVariants}
+              >
               <AnimatePresence mode="wait">
                 {displayError && (
                   <motion.div
@@ -426,25 +537,6 @@ export default function Register() {
                 </motion.div>
               </motion.div>
 
-              <motion.div
-                variants={itemVariants}
-                className="flex items-center gap-4 my-4"
-              >
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-                <span className="text-sm text-muted px-2">or</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-              </motion.div>
-
-              <motion.div variants={itemVariants}>
-                <GoogleSignInButton
-                  onSuccess={() => {
-                    const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
-                    navigate(redirectTo);
-                  }}
-                  onError={(message) => setLocalError(message)}
-                />
-              </motion.div>
-
               <motion.p
                 variants={itemVariants}
                 className="text-xs text-muted text-center pt-2"
@@ -458,7 +550,8 @@ export default function Register() {
                   Terms of Service
                 </Link>
               </motion.p>
-            </motion.form>
+              </motion.form>
+            )}
           </div>
 
           {/* Footer */}

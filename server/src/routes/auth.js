@@ -1,5 +1,4 @@
 import express from 'express';
-import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import Project from '../models/Project.js';
 import {
@@ -48,9 +47,6 @@ const acceptProjectInvitesForUser = async (user) => {
     await triggerProjectEvent(project._id, 'team.updated', { team: project.team });
   }
 };
-
-// Initialize Google OAuth client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * POST /api/auth/register
@@ -176,10 +172,10 @@ router.post('/login', rateLimit({ max: 10, windowMs: 15 * 60 * 1000 }), async (r
       });
     }
 
-    if (user.authProvider === 'google' && !user.password) {
+    if (['google', 'clerk'].includes(user.authProvider) && !user.password) {
       return res.status(400).json({
         success: false,
-        error: 'This account uses Google sign-in. Please login with Google.',
+        error: 'This account uses external sign-in. Please login with the provider.',
       });
     }
 
@@ -217,107 +213,6 @@ router.post('/login', rateLimit({ max: 10, windowMs: 15 * 60 * 1000 }), async (r
     res.status(500).json({
       success: false,
       error: 'Login failed. Please try again.',
-    });
-  }
-});
-
-/**
- * POST /api/auth/google
- * Login/Register with Google
- */
-router.post('/google', async (req, res) => {
-  try {
-    const { credential, clientId } = req.body;
-
-    if (!credential) {
-      return res.status(400).json({
-        success: false,
-        error: 'Google credential is required.',
-      });
-    }
-
-    // Verify Google token
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: clientId || process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    const { sub: googleId, email, name, picture } = payload;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email not provided by Google.',
-      });
-    }
-
-    // Find or create user
-    let user = await User.findOne({
-      $or: [{ googleId }, { email: email.toLowerCase() }],
-    });
-
-    let isNewUser = false;
-
-    if (!user) {
-      // Create new user
-      user = new User({
-        email,
-        name,
-        googleId,
-        avatar: picture,
-        authProvider: 'google',
-        isVerified: true, // Google accounts are pre-verified
-      });
-      await user.save();
-      isNewUser = true;
-    } else {
-      // Update existing user with Google info if not already linked
-      if (!user.googleId) {
-        user.googleId = googleId;
-      }
-      if (!user.avatar && picture) {
-        user.avatar = picture;
-      }
-      if (!user.isVerified) {
-        user.isVerified = true;
-      }
-      user.lastLogin = new Date();
-      await user.save();
-    }
-
-    await acceptProjectInvitesForUser(user);
-
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        error: 'Your account has been deactivated.',
-      });
-    }
-
-    // Generate tokens
-    const tokens = generateTokenPair(user._id, { role: user.role });
-
-    await user.addRefreshToken(
-      tokens.refreshToken,
-      getRefreshTokenExpiry(),
-      req.headers['user-agent']
-    );
-
-    res.json({
-      success: true,
-      message: isNewUser ? 'Account created successfully.' : 'Login successful.',
-      data: {
-        user: user.toJSON(),
-        isNewUser,
-        ...tokens,
-      },
-    });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Google authentication failed.',
     });
   }
 });
@@ -455,10 +350,10 @@ router.post('/forgot-password', rateLimit({ max: 3, windowMs: 60 * 60 * 1000 }),
       });
     }
 
-    if (user.authProvider === 'google' && !user.password) {
+    if (['google', 'clerk'].includes(user.authProvider) && !user.password) {
       return res.json({
         success: true,
-        message: 'This account uses Google sign-in. Please login with Google.',
+        message: 'This account uses external sign-in. Please login with the provider.',
       });
     }
 
@@ -681,7 +576,7 @@ router.post('/change-password', authenticate, async (req, res) => {
     if (!user.password) {
       return res.status(400).json({
         success: false,
-        error: 'This account uses Google sign-in and has no password.',
+        error: 'This account uses external sign-in and has no password.',
       });
     }
 

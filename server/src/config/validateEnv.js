@@ -10,6 +10,7 @@ const validateEnv = () => {
       ...collectMissing([
         'JWT_ACCESS_SECRET',
         'JWT_REFRESH_SECRET',
+        'CLERK_SECRET_KEY',
       ])
     );
 

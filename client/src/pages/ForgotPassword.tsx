@@ -53,8 +53,17 @@ export default function ForgotPassword() {
 
         <div className="flex-1 px-6">
           {sent ? (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-4 rounded-xl text-sm">
-              Password reset email sent. Check your inbox and follow the instructions.
+            <div className="space-y-3">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-4 rounded-xl text-sm">
+                Password reset code sent. Check your inbox and enter the code to set a new password.
+              </div>
+              <Button
+                type="button"
+                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                asChild
+              >
+                <Link to="/reset-password">Continue to Reset</Link>
+              </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

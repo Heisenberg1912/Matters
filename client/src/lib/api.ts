@@ -4,6 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { authSession } from './auth-session';
 
 // Configuration
 const API_BASE_URL =
@@ -12,9 +13,6 @@ const API_BASE_URL =
 const API_PREFIX = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Storage keys for auth tokens
-const ACCESS_TOKEN_KEY = 'matters-access-token';
-const REFRESH_TOKEN_KEY = 'matters-refresh-token';
-const USER_KEY = 'matters-user';
 const CURRENT_PROJECT_KEY = 'matters-current-project';
 
 // Types
@@ -237,20 +235,16 @@ export interface SupportTicket {
 
 // Auth storage functions
 export const authStorage = {
-  getAccessToken: (): string | null => localStorage.getItem(ACCESS_TOKEN_KEY),
-  getRefreshToken: (): string | null => localStorage.getItem(REFRESH_TOKEN_KEY),
-  getUser: (): User | null => {
-    const user = localStorage.getItem(USER_KEY);
-    return user ? JSON.parse(user) : null;
-  },
+  getAccessToken: (): string | null => authSession.getCachedToken(),
+  getRefreshToken: (): string | null => null,
+  getUser: (): User | null => authSession.getUser(),
   getCurrentProjectId: (): string | null => localStorage.getItem(CURRENT_PROJECT_KEY),
 
   setTokens: (tokens: AuthTokens): void => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+    authSession.setToken(tokens.accessToken);
   },
   setUser: (user: User): void => {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    authSession.setUser(user);
   },
   setCurrentProject: (projectId: string): void => {
     localStorage.setItem(CURRENT_PROJECT_KEY, projectId);
@@ -260,13 +254,11 @@ export const authStorage = {
   },
 
   clear: (): void => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    authSession.clear();
     localStorage.removeItem(CURRENT_PROJECT_KEY);
   },
 
-  isAuthenticated: (): boolean => !!localStorage.getItem(ACCESS_TOKEN_KEY),
+  isAuthenticated: (): boolean => authSession.isAuthenticated(),
 };
 
 // Create axios instance
@@ -280,8 +272,8 @@ const api: AxiosInstance = axios.create({
 
 // Request interceptor - add auth token
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = authStorage.getAccessToken();
+  async (config: InternalAxiosRequestConfig) => {
+    const token = await authSession.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -290,72 +282,13 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle token refresh
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (value: unknown) => void;
-  reject: (reason?: unknown) => void;
-}> = [];
-
-const processQueue = (error: Error | null, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-    // Handle 401 errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      const refreshToken = authStorage.getRefreshToken();
-
-      if (!refreshToken) {
-        authStorage.clear();
+    if (error.response?.status === 401) {
+      authStorage.clear();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
-      try {
-        const response = await axios.post(`${API_BASE_URL}${API_PREFIX}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-        authStorage.setTokens({ accessToken, refreshToken: newRefreshToken });
-
-        processQueue(null, accessToken);
-
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError as Error, null);
-        authStorage.clear();
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 
@@ -365,45 +298,6 @@ api.interceptors.response.use(
 
 // ===== AUTH API =====
 export const authApi = {
-  register: async (data: { email: string; password: string; name: string; phone?: string; role?: string }) => {
-    const response = await api.post<ApiResponse<{ user: User } & AuthTokens>>('/auth/register', data);
-    if (response.data.success && response.data.data) {
-      const { user, accessToken, refreshToken } = response.data.data;
-      authStorage.setTokens({ accessToken, refreshToken });
-      authStorage.setUser(user);
-    }
-    return response.data;
-  },
-
-  login: async (email: string, password: string) => {
-    const response = await api.post<ApiResponse<{ user: User } & AuthTokens>>('/auth/login', { email, password });
-    if (response.data.success && response.data.data) {
-      const { user, accessToken, refreshToken } = response.data.data;
-      authStorage.setTokens({ accessToken, refreshToken });
-      authStorage.setUser(user);
-    }
-    return response.data;
-  },
-
-  googleAuth: async (credential: string, clientId?: string) => {
-    const response = await api.post<ApiResponse<{ user: User; isNewUser: boolean } & AuthTokens>>('/auth/google', { credential, clientId });
-    if (response.data.success && response.data.data) {
-      const { user, accessToken, refreshToken } = response.data.data;
-      authStorage.setTokens({ accessToken, refreshToken });
-      authStorage.setUser(user);
-    }
-    return response.data;
-  },
-
-  logout: async (logoutAll = false) => {
-    const refreshToken = authStorage.getRefreshToken();
-    try {
-      await api.post('/auth/logout', { refreshToken, logoutAll });
-    } finally {
-      authStorage.clear();
-    }
-  },
-
   getMe: async () => {
     const response = await api.get<ApiResponse<{ user: User }>>('/auth/me');
     if (response.data.success && response.data.data) {
@@ -417,29 +311,6 @@ export const authApi = {
     if (response.data.success && response.data.data) {
       authStorage.setUser(response.data.data.user);
     }
-    return response.data;
-  },
-
-  forgotPassword: async (email: string) => {
-    const response = await api.post<ApiResponse>('/auth/forgot-password', { email });
-    return response.data;
-  },
-
-  resetPassword: async (token: string, password: string) => {
-    const response = await api.post<ApiResponse>('/auth/reset-password', { token, password });
-    return response.data;
-  },
-
-  changePassword: async (currentPassword: string, newPassword: string) => {
-    const response = await api.post<ApiResponse<AuthTokens>>('/auth/change-password', { currentPassword, newPassword });
-    if (response.data.success && response.data.data) {
-      authStorage.setTokens(response.data.data);
-    }
-    return response.data;
-  },
-
-  verifyEmail: async (token: string) => {
-    const response = await api.post<ApiResponse>('/auth/verify-email', { token });
     return response.data;
   },
 };

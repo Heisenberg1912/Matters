@@ -40,9 +40,14 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    clerkId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     authProvider: {
       type: String,
-      enum: ['local', 'google'],
+      enum: ['local', 'google', 'clerk'],
       default: 'local',
     },
     isVerified: {

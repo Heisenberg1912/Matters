@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PhoneShell from '@/components/phone-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -308,27 +307,6 @@ export default function Login() {
                 </motion.div>
               </motion.div>
             </motion.form>
-
-            {/* Divider */}
-            <motion.div
-              variants={itemVariants}
-              className="flex items-center gap-4 my-6"
-            >
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-              <span className="text-sm text-muted px-2">or continue with</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            </motion.div>
-
-            {/* Google Sign-In */}
-            <motion.div variants={itemVariants}>
-              <GoogleSignInButton
-                onSuccess={() => {
-                  const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
-                  navigate(redirectTo);
-                }}
-                onError={(message) => setLocalError(message)}
-              />
-            </motion.div>
 
             {/* Skip for Demo */}
             <motion.div variants={itemVariants}>
