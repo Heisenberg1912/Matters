@@ -5,6 +5,11 @@ import { authSession } from "../lib/auth-session";
 import { getUserChannelName, resetPusherClient, subscribeToChannel, unsubscribeFromChannel } from "@/lib/realtime";
 import { useNotifications } from "@/hooks/use-notifications";
 
+type AuthRole = "user" | "contractor";
+type OAuthProvider = "google" | "github" | "apple";
+
+const OAUTH_ROLE_STORAGE_KEY = "pending-oauth-role";
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -14,6 +19,8 @@ interface AuthContextType {
   register: (data: { email: string; password: string; name: string; phone?: string; role?: string }) => Promise<{
     status: "complete" | "needs_verification";
   }>;
+  signInWithOAuth: (provider: OAuthProvider, redirectTo?: string) => Promise<void>;
+  signUpWithOAuth: (provider: OAuthProvider, options?: { redirectTo?: string; role?: AuthRole }) => Promise<void>;
   verifyEmail: (code: string) => Promise<void>;
   logout: (logoutAll?: boolean) => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -39,11 +46,45 @@ const getClerkErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
+const normalizeRole = (value: unknown): AuthRole | null => {
+  if (value === "contractor") return "contractor";
+  if (value === "user") return "user";
+  return null;
+};
+
+const getClerkMetadataRole = (clerkUser: {
+  publicMetadata?: Record<string, unknown>;
+  unsafeMetadata?: Record<string, unknown>;
+} | null): AuthRole | null => {
+  if (!clerkUser) return null;
+  const rawRole = clerkUser.publicMetadata?.role ?? clerkUser.unsafeMetadata?.role;
+  return normalizeRole(rawRole);
+};
+
+const readPendingOAuthRole = (): AuthRole | null => {
+  if (typeof window === "undefined") return null;
+  return normalizeRole(localStorage.getItem(OAUTH_ROLE_STORAGE_KEY));
+};
+
+const setPendingOAuthRole = (role: AuthRole | null) => {
+  if (typeof window === "undefined") return;
+  if (!role) {
+    localStorage.removeItem(OAUTH_ROLE_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(OAUTH_ROLE_STORAGE_KEY, role);
+};
+
+const clearPendingOAuthRole = () => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(OAUTH_ROLE_STORAGE_KEY);
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { showToast } = useNotifications();
   const { isLoaded: clerkLoaded, isSignedIn, getToken } = useClerkAuth();
   const { signOut } = useClerk();
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded: clerkUserLoaded } = useUser();
   const { isLoaded: signInLoaded, signIn, setActive: setActiveSignIn } = useSignIn();
   const { isLoaded: signUpLoaded, signUp, setActive: setActiveSignUp } = useSignUp();
 
@@ -65,6 +106,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const ensureClerkRole = useCallback(async () => {
+    const pendingRole = readPendingOAuthRole();
+    if (!pendingRole) return true;
+    if (!clerkUser) return false;
+
+    const existingRole = getClerkMetadataRole(clerkUser);
+    if (!existingRole) {
+      try {
+        await clerkUser.update({
+          unsafeMetadata: {
+            ...(clerkUser.unsafeMetadata || {}),
+            role: pendingRole,
+          },
+        });
+      } catch (err) {
+        console.error("Failed to persist Clerk role metadata:", err);
+        return false;
+      }
+    }
+
+    clearPendingOAuthRole();
+    return true;
+  }, [clerkUser]);
+
   const syncToken = useCallback(async () => {
     if (!clerkLoaded || !isSignedIn) {
       authSession.setToken(null);
@@ -79,12 +144,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await syncToken();
 
+    const canProceed = await ensureClerkRole();
+    if (!canProceed) {
+      return;
+    }
+
     const response = await authApi.getMe();
     if (response.success && response.data?.user) {
       setUser(response.data.user);
       authSession.setUser(response.data.user);
     }
-  }, [isSignedIn, syncToken]);
+  }, [ensureClerkRole, isSignedIn, syncToken]);
 
   useEffect(() => {
     if (!clerkLoaded) {
@@ -104,6 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!clerkLoaded) return;
 
+    const pendingRole = readPendingOAuthRole();
+    if (isSignedIn && pendingRole && !clerkUserLoaded) {
+      return;
+    }
+
     const bootstrap = async () => {
       if (!isSignedIn) {
         authSession.clear();
@@ -122,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     bootstrap();
-  }, [clerkLoaded, isSignedIn, refreshUser]);
+  }, [clerkLoaded, clerkUserLoaded, isSignedIn, refreshUser]);
 
   useEffect(() => {
     if (!clerkLoaded || !isSignedIn) {
@@ -153,6 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (email: string, password: string) => {
     setIsBusy(true);
     setError(null);
+    clearPendingOAuthRole();
     try {
       if (!signInLoaded || !signIn) {
         throw new Error("Sign in is not ready yet.");
@@ -179,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = useCallback(async (data: { email: string; password: string; name: string; phone?: string; role?: string }) => {
     setIsBusy(true);
     setError(null);
+    clearPendingOAuthRole();
     try {
       if (!signUpLoaded || !signUp) {
         throw new Error("Sign up is not ready yet.");
@@ -215,6 +292,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsBusy(false);
     }
   }, [acceptPendingInvite, refreshUser, setActiveSignUp, signUp, signUpLoaded]);
+
+  const signInWithOAuth = useCallback(async (provider: OAuthProvider, redirectTo?: string) => {
+    setIsBusy(true);
+    setError(null);
+    try {
+      if (!signInLoaded || !signIn) {
+        throw new Error("Sign in is not ready yet.");
+      }
+
+      clearPendingOAuthRole();
+
+      const strategy = `oauth_${provider}` as const;
+      await signIn.authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: redirectTo || "/home",
+      });
+    } catch (err) {
+      const message = getClerkErrorMessage(err, "Social sign-in failed");
+      setError(message);
+      throw err;
+    } finally {
+      setIsBusy(false);
+    }
+  }, [signIn, signInLoaded]);
+
+  const signUpWithOAuth = useCallback(async (provider: OAuthProvider, options?: { redirectTo?: string; role?: AuthRole }) => {
+    setIsBusy(true);
+    setError(null);
+    try {
+      if (!signUpLoaded || !signUp) {
+        throw new Error("Sign up is not ready yet.");
+      }
+
+      const role = normalizeRole(options?.role);
+      setPendingOAuthRole(role);
+
+      const strategy = `oauth_${provider}` as const;
+      await signUp.authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: options?.redirectTo || "/home",
+      });
+    } catch (err) {
+      clearPendingOAuthRole();
+      const message = getClerkErrorMessage(err, "Social sign-up failed");
+      setError(message);
+      throw err;
+    } finally {
+      setIsBusy(false);
+    }
+  }, [signUp, signUpLoaded]);
 
   const verifyEmail = useCallback(async (code: string) => {
     setIsBusy(true);
@@ -399,6 +528,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error,
     login,
     register,
+    signInWithOAuth,
+    signUpWithOAuth,
     verifyEmail,
     logout,
     updateProfile,

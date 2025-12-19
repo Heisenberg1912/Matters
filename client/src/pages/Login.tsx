@@ -6,7 +6,7 @@ import PhoneShell from '@/components/phone-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2, Sparkles } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2, Sparkles, Github } from 'lucide-react';
 
 // Floating orb component for background decoration
 const FloatingOrb = ({ delay, size, x, y }: { delay: number; size: number; x: string; y: string }) => (
@@ -75,15 +75,25 @@ const inputFocusVariants = {
   focus: { scale: 1.02, transition: { type: "spring" as const, stiffness: 400, damping: 25 } }
 };
 
+const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M21.82 10.04H12v3.94h5.62c-.24 1.33-1.55 3.9-5.62 3.9-3.38 0-6.13-2.8-6.13-6.25s2.75-6.25 6.13-6.25c1.93 0 3.23.82 3.97 1.53l2.7-2.6C16.92 2.72 14.63 1.6 12 1.6 6.44 1.6 2 6.15 2 11.63S6.44 21.66 12 21.66c6.97 0 8.68-4.9 8.68-7.3 0-.5-.05-.88-.14-1.32z"
+    />
+  </svg>
+);
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, signInWithOAuth, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,8 +107,18 @@ export default function Login() {
 
     try {
       await login(email, password);
-      const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
       navigate(redirectTo);
+    } catch {
+      // Error is handled by context
+    }
+  };
+
+  const handleSocialSignIn = async (provider: "google" | "github") => {
+    setLocalError('');
+    clearError();
+
+    try {
+      await signInWithOAuth(provider, redirectTo);
     } catch {
       // Error is handled by context
     }
@@ -184,6 +204,40 @@ export default function Login() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              <motion.div variants={itemVariants} className="space-y-3">
+                <motion.button
+                  type="button"
+                  onClick={() => handleSocialSignIn("google")}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-12 rounded-2xl border border-border bg-card/60 text-foreground/80 hover:text-foreground hover:border-pill/50 hover:bg-card/80 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  <GoogleIcon className="w-5 h-5" />
+                  Continue with Google
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => handleSocialSignIn("github")}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-12 rounded-2xl border border-border bg-card/60 text-foreground/80 hover:text-foreground hover:border-pill/50 hover:bg-card/80 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  <Github className="w-5 h-5" />
+                  Continue with GitHub
+                </motion.button>
+              </motion.div>
+
+              <motion.div
+                variants={itemVariants}
+                className="flex items-center gap-3 text-[0.7rem] uppercase tracking-[0.3em] text-muted/70"
+              >
+                <span className="h-px flex-1 bg-border/60" />
+                or
+                <span className="h-px flex-1 bg-border/60" />
+              </motion.div>
 
               <motion.div variants={itemVariants} className="space-y-2">
                 <Label htmlFor="email" className="text-foreground/80 text-sm font-medium pl-1">
