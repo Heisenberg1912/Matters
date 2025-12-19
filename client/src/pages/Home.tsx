@@ -116,11 +116,39 @@ export default function Home() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { user } = useAuth();
   const { currentProject } = useProject();
-  const totalAllocated = useBudgetStore((state) => state.getTotalAllocated());
-  const totalSpent = useBudgetStore((state) => state.getTotalSpent());
-  const tasksByStatus = useScheduleStore((state) => state.getTasksByStatus());
-  const overallProgress = useScheduleStore((state) => state.getOverallProgress());
-  const activeMembersCount = useTeamStore((state) => state.getActiveMembersCount());
+
+  // Select raw state to avoid infinite loops from calling getters in selectors
+  const budgetCategories = useBudgetStore((state) => state.categories);
+  const schedulePhases = useScheduleStore((state) => state.phases);
+  const teamMembers = useTeamStore((state) => state.members);
+
+  // Compute values using useMemo to prevent recalculation on every render
+  const totalAllocated = useMemo(() =>
+    budgetCategories.reduce((sum, cat) => sum + cat.allocated, 0),
+    [budgetCategories]
+  );
+  const totalSpent = useMemo(() =>
+    budgetCategories.reduce((sum, cat) => sum + cat.spent, 0),
+    [budgetCategories]
+  );
+  const tasksByStatus = useMemo(() => {
+    const allTasks = schedulePhases.flatMap((phase) => phase.tasks);
+    return {
+      completed: allTasks.filter((t) => t.status === 'completed').length,
+      in_progress: allTasks.filter((t) => t.status === 'in_progress').length,
+      pending: allTasks.filter((t) => t.status === 'pending').length,
+    };
+  }, [schedulePhases]);
+  const overallProgress = useMemo(() => {
+    if (schedulePhases.length === 0) return 0;
+    const total = schedulePhases.reduce((sum, phase) => sum + (phase.progress || 0), 0);
+    return Math.round(total / schedulePhases.length);
+  }, [schedulePhases]);
+  const activeMembersCount = useMemo(() =>
+    teamMembers.filter((m) => m.status === 'active').length,
+    [teamMembers]
+  );
+
   const navigate = useNavigate();
   const currentStage = stageSlides[stageIndex];
   const { showToast } = useNotifications();

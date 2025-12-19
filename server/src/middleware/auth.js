@@ -25,9 +25,16 @@ const getClerkRole = (clerkUser) => {
   return rawRole === 'contractor' ? 'contractor' : 'user';
 };
 
+const VALID_ROLES = ['user', 'contractor', 'admin', 'superadmin'];
+
 const findOrCreateClerkUser = async (clerkUserId) => {
   let user = await User.findOne({ clerkId: clerkUserId });
   if (user) {
+    // Normalize invalid role if needed
+    if (!VALID_ROLES.includes(user.role)) {
+      user.role = 'user';
+      await user.save();
+    }
     return user;
   }
 
@@ -45,6 +52,10 @@ const findOrCreateClerkUser = async (clerkUserId) => {
     user.clerkId = clerkUserId;
     user.authProvider = 'clerk';
     user.isVerified = true;
+    // Normalize invalid role
+    if (!VALID_ROLES.includes(user.role)) {
+      user.role = role;
+    }
     if (!user.avatar && clerkUser.imageUrl) {
       user.avatar = clerkUser.imageUrl;
     }
