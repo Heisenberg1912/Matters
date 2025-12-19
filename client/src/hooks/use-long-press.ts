@@ -5,7 +5,7 @@ type UseLongPressOptions = {
 };
 
 export function useLongPress(onLongPress: () => void, { delay = 600 }: UseLongPressOptions = {}) {
-  const timer = useRef<number>();
+  const timer = useRef<number | undefined>(undefined);
   const [pressing, setPressing] = useState(false);
 
   const start = useCallback(() => {

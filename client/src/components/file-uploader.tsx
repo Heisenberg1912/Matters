@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useDropzone, type Accept } from "react-dropzone";
+import { useDropzone, type Accept, type FileRejection } from "react-dropzone";
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +77,7 @@ export function FileUploader({
   );
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[], rejections: { file: File; errors: { message: string }[] }[]) => {
+    async (acceptedFiles: File[], rejections: FileRejection[]) => {
       if (rejections.length) {
         showToast({ type: "error", message: "Some files were rejected", description: rejections[0].errors[0].message });
       }
@@ -131,7 +131,7 @@ export function FileUploader({
           Drag & drop or tap to browse {multiple ? "files" : "a file"} {accept ? `(${Array.isArray(accept) ? accept.join(", ") : "supported types"})` : ""}
         </p>
         <p className="mt-1 text-xs text-[#8a8a8a]">
-          Max size {formatBytes(maxSize)} {captureCamera ? " • Camera supported" : ""}
+          Max size {formatBytes(maxSize)} {captureCamera ? " - Camera supported" : ""}
         </p>
         {helperText && <p className="mt-3 text-sm text-[#cfcfcf]">{helperText}</p>}
       </div>

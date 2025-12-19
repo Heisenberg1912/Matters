@@ -44,7 +44,7 @@ export interface PhotoAnalysisResponse {
   safetyScore: number;
   qualityScore: number;
   issues: {
-    type: string;
+    type: 'helmet' | 'vest' | 'scaffolding' | 'debris' | 'equipment';
     severity: 'low' | 'medium' | 'high';
     description: string;
     location?: string;

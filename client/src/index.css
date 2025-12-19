@@ -102,6 +102,53 @@ body {
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }
+
+  /* Touch-friendly tap targets (min 44px per Apple HIG) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better focus states for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#cfe0ad] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0b];
+  }
+
+  /* Prevent text selection on interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Prevent overscroll/bounce on pages */
+  .page-scroll {
+    overscroll-behavior-y: contain;
+  }
+
+  /* Horizontal scroll container for filters/chips */
+  .scroll-x-container {
+    @apply flex overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 gap-2;
+    scroll-snap-type: x proximity;
+  }
+
+  .scroll-x-container > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* Glass morphism effect */
+  .glass-card {
+    @apply bg-[#101010]/80 backdrop-blur-xl border border-[#2a2a2a];
+  }
+
+  /* Improved image loading */
+  .img-loading {
+    @apply bg-[#1a1a1a] animate-pulse;
+  }
+
+  .img-loaded {
+    @apply animate-fade-in;
+  }
 }
 
 @keyframes skeleton-shimmer {

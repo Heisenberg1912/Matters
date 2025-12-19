@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
@@ -11,6 +11,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2 } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +30,8 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/home');
+      const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
+      navigate(redirectTo);
     } catch {
       // Error is handled by context
     }
@@ -167,7 +169,10 @@ export default function Login() {
 
           {/* Google Sign-In */}
           <GoogleSignInButton
-            onSuccess={() => navigate('/home')}
+            onSuccess={() => {
+              const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
+              navigate(redirectTo);
+            }}
             onError={(message) => setLocalError(message)}
           />
 

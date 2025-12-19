@@ -1,91 +1,113 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import BottomNav from "@/components/bottom-nav";
-import PhoneShell from "@/components/phone-shell";
-import { AnimatedPage } from "@/components/AnimatedPage";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import PageLayout from "@/components/page-layout";
 import { Card } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Clock, CheckCircle2, Circle, AlertCircle } from "lucide-react";
-import { staggerContainer, listItem, scaleIn, slideUp, cardHover } from "@/lib/animations";
+import { useNotifications } from "@/hooks/use-notifications";
+import { useProject } from "@/context/ProjectContext";
+import { useScheduleStore, useTeamStore } from "@/store";
+import { staggerContainer, listItem, scaleIn, cardHover } from "@/lib/animations";
 
-const scheduleItems = [
-  {
-    id: "1",
-    phase: "Foundation",
-    tasks: [
-      { name: "Site excavation", startDate: "Dec 1, 2025", endDate: "Dec 5, 2025", status: "completed", progress: 100, assignedTo: "Rajesh Kumar" },
-      { name: "Steel reinforcement", startDate: "Dec 6, 2025", endDate: "Dec 9, 2025", status: "completed", progress: 100, assignedTo: "Rajesh Kumar" },
-      { name: "Foundation concrete", startDate: "Dec 10, 2025", endDate: "Dec 12, 2025", status: "completed", progress: 100, assignedTo: "Rajesh Kumar" },
-      { name: "Curing & backfilling", startDate: "Dec 13, 2025", endDate: "Dec 16, 2025", status: "completed", progress: 100, assignedTo: "Rajesh Kumar" }
-    ]
-  },
-  {
-    id: "2",
-    phase: "Structure - Ground Floor",
-    tasks: [
-      { name: "Column & beam work", startDate: "Dec 17, 2025", endDate: "Dec 22, 2025", status: "in-progress", progress: 60, assignedTo: "Rajesh Kumar" },
-      { name: "Slab casting", startDate: "Dec 23, 2025", endDate: "Dec 26, 2025", status: "pending", progress: 0, assignedTo: "Rajesh Kumar" },
-      { name: "Brickwork", startDate: "Dec 27, 2025", endDate: "Jan 5, 2026", status: "pending", progress: 0, assignedTo: "Rajesh Kumar" }
-    ]
-  },
-  {
-    id: "3",
-    phase: "MEP - Ground Floor",
-    tasks: [
-      { name: "Electrical conduit", startDate: "Dec 20, 2025", endDate: "Dec 28, 2025", status: "in-progress", progress: 40, assignedTo: "Amit Sharma" },
-      { name: "Plumbing rough-in", startDate: "Dec 22, 2025", endDate: "Dec 30, 2025", status: "in-progress", progress: 35, assignedTo: "Vikram Patel" },
-      { name: "HVAC ducts", startDate: "Jan 2, 2026", endDate: "Jan 8, 2026", status: "pending", progress: 0, assignedTo: "TBD" }
-    ]
-  },
-  {
-    id: "4",
-    phase: "Structure - First Floor",
-    tasks: [
-      { name: "Column & beam work", startDate: "Jan 6, 2026", endDate: "Jan 12, 2026", status: "pending", progress: 0, assignedTo: "Rajesh Kumar" },
-      { name: "Slab casting", startDate: "Jan 13, 2026", endDate: "Jan 16, 2026", status: "pending", progress: 0, assignedTo: "Rajesh Kumar" },
-      { name: "Brickwork", startDate: "Jan 17, 2026", endDate: "Jan 28, 2026", status: "pending", progress: 0, assignedTo: "Rajesh Kumar" }
-    ]
-  },
-  {
-    id: "5",
-    phase: "Finishing Works",
-    tasks: [
-      { name: "Plastering", startDate: "Feb 1, 2026", endDate: "Feb 20, 2026", status: "pending", progress: 0, assignedTo: "TBD" },
-      { name: "Flooring", startDate: "Feb 21, 2026", endDate: "Mar 10, 2026", status: "pending", progress: 0, assignedTo: "TBD" },
-      { name: "Painting", startDate: "Mar 11, 2026", endDate: "Mar 25, 2026", status: "pending", progress: 0, assignedTo: "TBD" },
-      { name: "Fixtures & fittings", startDate: "Mar 26, 2026", endDate: "Apr 5, 2026", status: "pending", progress: 0, assignedTo: "TBD" }
-    ]
-  }
-];
+type TaskStatus = "completed" | "in_progress" | "pending";
 
-const upcomingMilestones = [
-  { title: "Ground Floor Completion", date: "Jan 5, 2026", daysLeft: 19 },
-  { title: "First Floor Completion", date: "Jan 28, 2026", daysLeft: 42 },
-  { title: "Finishing Works Start", date: "Feb 1, 2026", daysLeft: 46 },
-  { title: "Project Handover", date: "Apr 15, 2026", daysLeft: 119 }
-];
+const formatDate = (value?: string) => {
+  if (!value) return "TBD";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "TBD" : date.toLocaleDateString();
+};
+
+const getDaysRemaining = (value?: string) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const diff = date.getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+};
 
 export default function Schedule() {
-  const [mode, setMode] = useState<"construction" | "refurbish">("construction");
-  const [expandedPhase, setExpandedPhase] = useState<string | null>(scheduleItems[1].id);
-  const navigate = useNavigate();
+  const { showToast } = useNotifications();
+  const { currentProject } = useProject();
 
-  const menuItems = [
-    { label: "Your Subscription", path: "/subscription" },
-    { label: "Hire a Contractor", path: "/hire-contractor" },
-    { label: "Privacy Policy", path: "/privacy-policy" },
-    { label: "News & Updates", path: "/news-updates" },
-    { label: "Visit Builtattic", path: "/visit-builtattic" },
-    { label: "Settings", path: "/settings" }
-  ];
+  const phases = useScheduleStore((state) => state.phases);
+  const milestones = useScheduleStore((state) => state.getUpcomingMilestones());
+  const expandedPhase = useScheduleStore((state) => state.expandedPhase);
+  const togglePhase = useScheduleStore((state) => state.togglePhase);
+  const addTask = useScheduleStore((state) => state.addTask);
+  const updateTaskStatus = useScheduleStore((state) => state.updateTaskStatus);
+  const scheduleError = useScheduleStore((state) => state.error);
+  const isSubmitting = useScheduleStore((state) => state.isSubmitting);
+  const tasksByStatus = useScheduleStore((state) => state.getTasksByStatus());
+  const overallProgress = useScheduleStore((state) => state.getOverallProgress());
+  const fetchScheduleData = useScheduleStore((state) => state.fetchScheduleData);
 
-  const getStatusIcon = (status: string) => {
+  const teamMembers = useTeamStore((state) => state.members);
+
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [taskForm, setTaskForm] = useState({
+    name: "",
+    phaseId: "",
+    assignedTo: "",
+    startDate: "",
+    endDate: "",
+    description: "",
+  });
+
+  useEffect(() => {
+    if (currentProject?._id) {
+      fetchScheduleData(currentProject._id);
+    }
+  }, [currentProject?._id, fetchScheduleData]);
+
+  const handleAddTaskClick = () => {
+    if (!currentProject?._id) {
+      showToast({ type: "warning", message: "Select a project first" });
+      return;
+    }
+    if (phases.length === 0) {
+      showToast({ type: "warning", message: "Create a phase before adding tasks" });
+      return;
+    }
+    setTaskForm({
+      name: "",
+      phaseId: phases[0]?.id || "",
+      assignedTo: "",
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: "",
+      description: "",
+    });
+    setIsAddTaskOpen(true);
+  };
+
+  const handleSaveTask = async () => {
+    if (!taskForm.name.trim() || !taskForm.phaseId) {
+      showToast({ type: "error", message: "Task name and phase are required" });
+      return;
+    }
+    const startDate = taskForm.startDate || new Date().toISOString().split("T")[0];
+    const endDate = taskForm.endDate || startDate;
+    try {
+      await addTask({
+        phaseId: taskForm.phaseId,
+        name: taskForm.name.trim(),
+        status: "pending",
+        startDate,
+        endDate,
+        assignedTo: taskForm.assignedTo || undefined,
+        description: taskForm.description.trim() || undefined,
+      });
+      showToast({ type: "success", message: "Task added" });
+      setIsAddTaskOpen(false);
+    } catch (error) {
+      showToast({ type: "error", message: "Failed to add task" });
+    }
+  };
+
+  const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
       case "completed":
         return <CheckCircle2 size={24} className="text-[#4ade80]" />;
-      case "in-progress":
+      case "in_progress":
         return <Clock size={24} className="text-[#cfe0ad]" />;
       case "pending":
         return <Circle size={24} className="text-[#6a6a6a]" />;
@@ -94,11 +116,11 @@ export default function Schedule() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: TaskStatus) => {
     switch (status) {
       case "completed":
         return "bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]";
-      case "in-progress":
+      case "in_progress":
         return "bg-[#cfe0ad]/10 text-[#cfe0ad] border-[#cfe0ad]";
       case "pending":
         return "bg-[#6a6a6a]/10 text-[#bdbdbd] border-[#6a6a6a]";
@@ -107,238 +129,332 @@ export default function Schedule() {
     }
   };
 
-  return (
-    <AnimatedPage>
-      <PhoneShell>
-        <Sheet>
-          <div className="flex h-full flex-col">
-            <header className="flex flex-wrap items-center gap-6 rounded-b-[60px] border-b border-[#1f1f1f] bg-[#050505] px-6 py-10 md:flex-nowrap md:px-10 lg:px-24 lg:py-16">
-              <SheetTrigger asChild>
-                <button type="button">
-                  <Avatar className="h-16 w-16 border-2 border-[#232323]">
-                    <AvatarFallback>G</AvatarFallback>
-                  </Avatar>
-                </button>
-              </SheetTrigger>
+  const upcomingMilestones = useMemo(
+    () =>
+      milestones.map((milestone) => ({
+        ...milestone,
+        daysLeft: getDaysRemaining(milestone.date),
+      })),
+    [milestones]
+  );
 
-              <div className="flex flex-col text-white">
-                <span className="text-3xl font-semibold">Oh Hi, Guest!</span>
-                <span className="text-sm uppercase tracking-[0.35em] text-[#c7c7c7]">Project Schedule</span>
-              </div>
+  const handleStatusUpdate = async (taskId: string, currentStatus: TaskStatus) => {
+    if (currentStatus === "completed") {
+      return;
+    }
+    const nextStatus: TaskStatus =
+      currentStatus === "pending" ? "in_progress" : "completed";
+    try {
+      await updateTaskStatus(taskId, nextStatus);
+    } catch (error) {
+      showToast({ type: "error", message: "Failed to update task" });
+    }
+  };
 
-            <div className="ml-auto flex rounded-full border border-[#2a2a2a] bg-[#0c0c0c] p-2 text-base font-semibold">
-              {(["construction", "refurbish"] as const).map((state) => (
-                <button
-                  key={state}
-                  type="button"
-                  onClick={() => setMode(state)}
-                  className={`rounded-full px-6 py-2 transition ${
-                    mode === state ? "bg-[var(--pill,#cfe0ad)] text-black" : "text-white"
-                  }`}
-                >
-                  {state.toUpperCase()}
-                </button>
+  const addTaskDialog = (
+    <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add Task</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-semibold text-white">Task name</label>
+            <input
+              value={taskForm.name}
+              onChange={(event) => setTaskForm((prev) => ({ ...prev, name: event.target.value }))}
+              className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad] touch-target"
+              placeholder="Excavation layout"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-white">Phase</label>
+            <select
+              value={taskForm.phaseId}
+              onChange={(event) => setTaskForm((prev) => ({ ...prev, phaseId: event.target.value }))}
+              className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad] touch-target"
+            >
+              {phases.map((phase) => (
+                <option key={phase.id} value={phase.id}>
+                  {phase.name}
+                </option>
               ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-white">Start date</label>
+              <input
+                type="date"
+                value={taskForm.startDate}
+                onChange={(event) => setTaskForm((prev) => ({ ...prev, startDate: event.target.value }))}
+                className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad] touch-target"
+              />
             </div>
-          </header>
-
-          <div className="flex-1 overflow-y-auto px-6 md:px-10 lg:px-24 pb-32">
-            <div className="mx-auto w-full max-w-6xl">
-              <section className="mt-16">
-                <h2 className="text-4xl font-bold tracking-tight text-white">Upcoming Milestones</h2>
-                <motion.div
-                  className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2"
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
-                >
-                  {upcomingMilestones.map((milestone) => (
-                    <motion.div key={milestone.title} variants={scaleIn} whileHover={cardHover}>
-                      <Card className="flex items-center gap-6 rounded-[34px] border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-8">
-                        <Calendar size={48} className="text-[#cfe0ad]" strokeWidth={1.5} />
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-semibold text-white">{milestone.title}</h3>
-                          <p className="mt-2 text-xl text-[#bdbdbd]">{milestone.date}</p>
-                          <p className="mt-1 text-lg text-[#8a8a8a]">{milestone.daysLeft} days remaining</p>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </section>
-
-              <section className="mt-20">
-                <h2 className="text-4xl font-bold tracking-tight text-white">Project Timeline</h2>
-                <motion.div
-                  className="mt-8 space-y-6"
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
-                >
-                  {scheduleItems.map((phase) => {
-                    const isExpanded = expandedPhase === phase.id;
-                    const completedTasks = phase.tasks.filter(t => t.status === "completed").length;
-                    const totalTasks = phase.tasks.length;
-                    const phaseProgress = Math.round((completedTasks / totalTasks) * 100);
-
-                    return (
-                      <motion.div key={phase.id} variants={listItem}>
-                        <Card className="overflow-hidden rounded-[34px] border border-[#2a2a2a] bg-[#101010]">
-                        <button
-                          type="button"
-                          onClick={() => setExpandedPhase(isExpanded ? null : phase.id)}
-                          className="w-full p-8 text-left transition hover:bg-[#151515]"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h3 className="text-2xl font-semibold text-white">{phase.phase}</h3>
-                              <div className="mt-4 flex items-center gap-4 text-lg text-[#bdbdbd]">
-                                <span>{completedTasks} of {totalTasks} tasks completed</span>
-                                <span>•</span>
-                                <span>{phaseProgress}% complete</span>
-                              </div>
-                              <div className="mt-4 h-4 overflow-hidden rounded-full border border-[#2a2a2a] bg-[#0d0d0d]">
-                                <div
-                                  className="h-full rounded-full bg-[#cfe0ad]"
-                                  style={{ width: `${phaseProgress}%` }}
-                                />
-                              </div>
-                            </div>
-                            <div className="ml-8 text-4xl text-[#bdbdbd]">
-                              {isExpanded ? "−" : "+"}
-                            </div>
-                          </div>
-                        </button>
-
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="border-t border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden"
-                            >
-                              <div className="p-8 space-y-6">
-                                {phase.tasks.map((task, taskIdx) => (
-                                  <motion.div
-                                    key={task.name}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: taskIdx * 0.05 }}
-                                    className="flex items-start gap-6 rounded-[24px] border border-[#1f1f1f] bg-[#0d0d0d] p-6"
-                                  >
-                                  <div className="mt-1">
-                                    {getStatusIcon(task.status)}
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-start justify-between">
-                                      <h4 className="text-xl font-semibold text-white">{task.name}</h4>
-                                      <span className={`rounded-full border px-4 py-1 text-sm font-semibold ${getStatusColor(task.status)}`}>
-                                        {task.status.replace("-", " ").toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div className="mt-3 flex gap-8 text-base text-[#bdbdbd]">
-                                      <div>
-                                        <span className="text-sm uppercase tracking-[0.2em] text-[#8a8a8a]">Start</span>
-                                        <p className="mt-1">{task.startDate}</p>
-                                      </div>
-                                      <div>
-                                        <span className="text-sm uppercase tracking-[0.2em] text-[#8a8a8a]">End</span>
-                                        <p className="mt-1">{task.endDate}</p>
-                                      </div>
-                                      <div>
-                                        <span className="text-sm uppercase tracking-[0.2em] text-[#8a8a8a]">Assigned To</span>
-                                        <p className="mt-1">{task.assignedTo}</p>
-                                      </div>
-                                    </div>
-                                    <div className="mt-4 h-3 overflow-hidden rounded-full border border-[#2a2a2a] bg-[#0d0d0d]">
-                                      <div
-                                        className="h-full rounded-full bg-[#cfe0ad]"
-                                        style={{ width: `${task.progress}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              </section>
-
-              <section className="mt-20">
-                <h2 className="text-4xl font-bold tracking-tight text-white">Project Statistics</h2>
-                <motion.div
-                  className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4"
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
-                >
-                  <motion.div variants={scaleIn}>
-                    <Card className="flex flex-col items-center justify-center rounded-[34px] border border-[#242424] bg-[#101010] p-8">
-                      <div className="text-6xl font-black text-[#4ade80]">7</div>
-                      <p className="mt-2 text-xl text-[#b9b9b9]">Completed</p>
-                    </Card>
-                  </motion.div>
-                  <motion.div variants={scaleIn}>
-                    <Card className="flex flex-col items-center justify-center rounded-[34px] border border-[#242424] bg-[#101010] p-8">
-                      <div className="text-6xl font-black text-[#cfe0ad]">5</div>
-                      <p className="mt-2 text-xl text-[#b9b9b9]">In Progress</p>
-                    </Card>
-                  </motion.div>
-                  <motion.div variants={scaleIn}>
-                    <Card className="flex flex-col items-center justify-center rounded-[34px] border border-[#242424] bg-[#101010] p-8">
-                      <div className="text-6xl font-black text-[#bdbdbd]">11</div>
-                      <p className="mt-2 text-xl text-[#b9b9b9]">Pending</p>
-                    </Card>
-                  </motion.div>
-                  <motion.div variants={scaleIn}>
-                    <Card className="flex flex-col items-center justify-center rounded-[34px] border border-[#242424] bg-[#101010] p-8">
-                      <div className="text-6xl font-black text-[#cfe0ad]">30%</div>
-                      <p className="mt-2 text-xl text-[#b9b9b9]">Overall</p>
-                    </Card>
-                  </motion.div>
-                </motion.div>
-              </section>
-
-              <section className="mt-20">
-                <button
-                  type="button"
-                  className="flex h-[200px] w-full items-center justify-center rounded-[50px] border-2 border-dashed border-[#2a2a2a] bg-[#111] text-2xl text-white transition hover:border-[#3a3a3a]"
-                >
-                  <span className="flex items-center gap-4">
-                    <span className="flex h-16 w-16 items-center justify-center rounded-full border border-[#3a3a3a] text-4xl">+</span>
-                    Add New Task
-                  </span>
-                </button>
-              </section>
+            <div>
+              <label className="text-sm font-semibold text-white">End date</label>
+              <input
+                type="date"
+                value={taskForm.endDate}
+                onChange={(event) => setTaskForm((prev) => ({ ...prev, endDate: event.target.value }))}
+                className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad] touch-target"
+              />
             </div>
           </div>
-
-          <BottomNav />
+          <div>
+            <label className="text-sm font-semibold text-white">Assigned to</label>
+            <select
+              value={taskForm.assignedTo}
+              onChange={(event) => setTaskForm((prev) => ({ ...prev, assignedTo: event.target.value }))}
+              className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad] touch-target"
+            >
+              <option value="">Unassigned</option>
+              {teamMembers.map((member) => (
+                <option key={member.id} value={member.name}>
+                  {member.name} ({member.role})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-white">Description</label>
+            <textarea
+              rows={3}
+              value={taskForm.description}
+              onChange={(event) => setTaskForm((prev) => ({ ...prev, description: event.target.value }))}
+              className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad]"
+              placeholder="Add task notes"
+            />
+          </div>
+          <button
+            type="button"
+            className="w-full rounded-full bg-[#cfe0ad] py-3 text-base font-semibold text-black transition hover:bg-[#d4e4b8] disabled:opacity-60 touch-target focus-ring"
+            onClick={handleSaveTask}
+            disabled={isSubmitting}
+          >
+            Save Task
+          </button>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
 
-        <SheetContent>
-          <div className="space-y-10 text-2xl">
-            {menuItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => navigate(item.path)}
-                className="w-full text-left font-medium transition hover:text-[#cfe0ad]"
-              >
-                {item.label}
-              </button>
+  return (
+    <PageLayout
+      title="Project Schedule"
+      extras={addTaskDialog}
+      contentClassName="px-4 xs:px-5 sm:px-6 md:px-10 lg:px-24"
+    >
+      <div className="mx-auto w-full max-w-6xl">
+        {!currentProject && (
+          <Card className="mt-6 border border-[#242424] bg-[#101010] p-4 text-sm xs:text-base text-[#bdbdbd]">
+            Select or create a project to view schedules.
+          </Card>
+        )}
+        {scheduleError && (
+          <Card className="mt-4 border border-red-500/40 bg-red-500/10 p-4 text-sm xs:text-base text-red-200">
+            {scheduleError}
+          </Card>
+        )}
+
+        <section className="mt-8 xs:mt-12 sm:mt-16">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl font-bold tracking-tight text-white">Upcoming Milestones</h2>
+          <motion.div
+            className="mt-4 xs:mt-6 sm:mt-8 grid grid-cols-1 gap-4 xs:gap-6 lg:grid-cols-2"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            {upcomingMilestones.length === 0 && (
+              <Card className="border border-[#2a2a2a] bg-[#101010] p-4 xs:p-6 text-base xs:text-lg text-[#bdbdbd]">
+                No milestones scheduled yet.
+              </Card>
+            )}
+            {upcomingMilestones.map((milestone) => (
+              <motion.div key={milestone.id} variants={scaleIn} whileHover={cardHover}>
+                <Card className="flex items-center gap-4 xs:gap-6 rounded-[24px] xs:rounded-[34px] border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-4 xs:p-6 sm:p-8">
+                  <Calendar size={36} className="text-[#cfe0ad] xs:w-12 xs:h-12 shrink-0" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg xs:text-xl sm:text-2xl font-semibold text-white truncate">{milestone.name}</h3>
+                    <p className="mt-1 xs:mt-2 text-sm xs:text-base sm:text-lg text-[#bdbdbd]">{formatDate(milestone.date)}</p>
+                    {milestone.daysLeft !== null && (
+                      <p className="mt-1 text-xs xs:text-sm sm:text-base text-[#8a8a8a]">{milestone.daysLeft} days remaining</p>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
             ))}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </PhoneShell>
-    </AnimatedPage>
+          </motion.div>
+        </section>
+
+        <section className="mt-12 xs:mt-16 sm:mt-20">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl font-bold tracking-tight text-white">Project Timeline</h2>
+          <motion.div
+            className="mt-4 xs:mt-6 sm:mt-8 space-y-4 xs:space-y-6"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            {phases.length === 0 && (
+              <Card className="border border-[#2a2a2a] bg-[#101010] p-4 xs:p-6 text-base xs:text-lg text-[#bdbdbd]">
+                Create phases to build your project timeline.
+              </Card>
+            )}
+            {phases.map((phase) => {
+              const isExpanded = expandedPhase === phase.id;
+              const completedTasks = phase.tasks.filter((t) => t.status === "completed").length;
+              const totalPhaseTasks = phase.tasks.length;
+              const phaseProgress =
+                totalPhaseTasks > 0
+                  ? Math.round((completedTasks / totalPhaseTasks) * 100)
+                  : phase.progress;
+
+              return (
+                <motion.div key={phase.id} variants={listItem}>
+                  <Card className="overflow-hidden rounded-[24px] xs:rounded-[34px] border border-[#2a2a2a] bg-[#101010]">
+                    <button
+                      type="button"
+                      onClick={() => togglePhase(phase.id)}
+                      className="w-full p-4 xs:p-6 sm:p-8 text-left transition hover:bg-[#151515] touch-target focus-ring"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg xs:text-xl sm:text-2xl font-semibold text-white truncate">{phase.name}</h3>
+                          <div className="mt-2 xs:mt-4 flex flex-wrap items-center gap-2 xs:gap-4 text-xs xs:text-sm sm:text-base text-[#bdbdbd]">
+                            <span>{completedTasks} of {totalPhaseTasks} tasks</span>
+                            <span className="hidden xs:inline">-</span>
+                            <span>{phaseProgress}% complete</span>
+                          </div>
+                          <div className="mt-3 xs:mt-4 h-3 xs:h-4 overflow-hidden rounded-full border border-[#2a2a2a] bg-[#0d0d0d]">
+                            <div
+                              className="h-full rounded-full bg-[#cfe0ad]"
+                              style={{ width: `${phaseProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-2xl xs:text-3xl sm:text-4xl text-[#bdbdbd] shrink-0">
+                          {isExpanded ? "-" : "+"}
+                        </div>
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="border-t border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden"
+                        >
+                          <div className="p-4 xs:p-6 sm:p-8 space-y-4 xs:space-y-6">
+                            {phase.tasks.length === 0 && (
+                              <Card className="border border-[#1f1f1f] bg-[#0d0d0d] p-4 text-sm xs:text-base text-[#bdbdbd]">
+                                No tasks in this phase yet.
+                              </Card>
+                            )}
+                            {phase.tasks.map((task, taskIdx) => (
+                              <motion.div
+                                key={task.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: taskIdx * 0.05 }}
+                                className="flex flex-wrap items-start gap-3 xs:gap-4 sm:gap-6 rounded-[16px] xs:rounded-[24px] border border-[#1f1f1f] bg-[#0d0d0d] p-4 xs:p-5 sm:p-6"
+                              >
+                                <div className="mt-1 shrink-0">
+                                  {getStatusIcon(task.status as TaskStatus)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-start justify-between gap-2 xs:gap-3">
+                                    <h4 className="text-base xs:text-lg sm:text-xl font-semibold text-white">{task.name}</h4>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStatusUpdate(task.id, task.status as TaskStatus)}
+                                      className={`rounded-full border px-3 xs:px-4 py-1 text-xs xs:text-sm font-semibold touch-target focus-ring ${getStatusColor(task.status as TaskStatus)}`}
+                                    >
+                                      {task.status.replace("_", " ").toUpperCase()}
+                                    </button>
+                                  </div>
+                                  {task.description && (
+                                    <p className="mt-2 text-sm xs:text-base text-[#bdbdbd]">{task.description}</p>
+                                  )}
+                                  <div className="mt-3 flex flex-wrap gap-4 xs:gap-6 text-xs xs:text-sm text-[#bdbdbd]">
+                                    <div>
+                                      <span className="text-xs uppercase tracking-[0.2em] text-[#8a8a8a]">Start</span>
+                                      <p className="mt-1">{formatDate(task.startDate)}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-xs uppercase tracking-[0.2em] text-[#8a8a8a]">End</span>
+                                      <p className="mt-1">{formatDate(task.endDate)}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-xs uppercase tracking-[0.2em] text-[#8a8a8a]">Assigned</span>
+                                      <p className="mt-1">{task.assignedTo || "Unassigned"}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </section>
+
+        <section className="mt-12 xs:mt-16 sm:mt-20">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl font-bold tracking-tight text-white">Project Statistics</h2>
+          <motion.div
+            className="mt-4 xs:mt-6 sm:mt-8 grid grid-cols-2 gap-3 xs:gap-4 sm:grid-cols-4"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            <motion.div variants={scaleIn}>
+              <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] border border-[#242424] bg-[#101010] p-4 xs:p-6">
+                <div className="text-3xl xs:text-4xl sm:text-6xl font-black text-[#4ade80]">{tasksByStatus.completed}</div>
+                <p className="mt-2 text-xs xs:text-sm sm:text-xl text-[#b9b9b9]">Completed</p>
+              </Card>
+            </motion.div>
+            <motion.div variants={scaleIn}>
+              <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] border border-[#242424] bg-[#101010] p-4 xs:p-6">
+                <div className="text-3xl xs:text-4xl sm:text-6xl font-black text-[#cfe0ad]">{tasksByStatus.in_progress}</div>
+                <p className="mt-2 text-xs xs:text-sm sm:text-xl text-[#b9b9b9]">In Progress</p>
+              </Card>
+            </motion.div>
+            <motion.div variants={scaleIn}>
+              <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] border border-[#242424] bg-[#101010] p-4 xs:p-6">
+                <div className="text-3xl xs:text-4xl sm:text-6xl font-black text-[#bdbdbd]">{tasksByStatus.pending}</div>
+                <p className="mt-2 text-xs xs:text-sm sm:text-xl text-[#b9b9b9]">Pending</p>
+              </Card>
+            </motion.div>
+            <motion.div variants={scaleIn}>
+              <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] border border-[#242424] bg-[#101010] p-4 xs:p-6">
+                <div className="text-3xl xs:text-4xl sm:text-6xl font-black text-[#cfe0ad]">{overallProgress}%</div>
+                <p className="mt-2 text-xs xs:text-sm sm:text-xl text-[#b9b9b9]">Overall</p>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        <section className="mt-12 xs:mt-16 sm:mt-20">
+          <button
+            type="button"
+            className="flex h-[120px] xs:h-[150px] sm:h-[180px] w-full items-center justify-center rounded-[30px] xs:rounded-[40px] border-2 border-dashed border-[#2a2a2a] bg-[#111] text-base xs:text-lg sm:text-xl text-white transition hover:border-[#3a3a3a] disabled:cursor-not-allowed disabled:opacity-60 touch-target focus-ring"
+            onClick={handleAddTaskClick}
+            disabled={isSubmitting}
+          >
+            <span className="flex items-center gap-3 xs:gap-4">
+              <span className="flex h-10 w-10 xs:h-12 xs:w-12 items-center justify-center rounded-full border border-[#3a3a3a] text-2xl xs:text-3xl">+</span>
+              Add New Task
+            </span>
+          </button>
+        </section>
+      </div>
+    </PageLayout>
   );
 }

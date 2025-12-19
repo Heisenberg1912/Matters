@@ -1,8 +1,12 @@
 import express from 'express';
+import crypto from 'crypto';
 import Project from '../models/Project.js';
 import Stage from '../models/Stage.js';
+import User from '../models/User.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { triggerProjectEvent, triggerUserEvent } from '../utils/realtime.js';
+import { hashToken } from '../utils/jwt.js';
+import { sendProjectInvitation } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -111,6 +115,50 @@ router.get('/:id', authenticate, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch project.',
+    });
+  }
+});
+
+/**
+ * GET /api/projects/:id/team
+ * Get project team members and invites
+ */
+router.get('/:id/team', authenticate, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate('owner', 'name email avatar phone')
+      .populate('contractor', 'name email avatar phone company')
+      .populate('team.user', 'name email avatar');
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found.',
+      });
+    }
+
+    const hasAccess =
+      project.owner._id.toString() === req.userId.toString() ||
+      project.contractor?._id?.toString() === req.userId.toString() ||
+      project.team.some((t) => t.user._id.toString() === req.userId.toString()) ||
+      ['admin', 'superadmin'].includes(req.user.role);
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have access to this project.',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { team: project.team, invites: project.invites },
+    });
+  } catch (error) {
+    console.error('Get project team error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch project team.',
     });
   }
 });
@@ -327,7 +375,7 @@ router.delete('/:id', authenticate, async (req, res) => {
  */
 router.post('/:id/team', authenticate, async (req, res) => {
   try {
-    const { userId, role = 'viewer' } = req.body;
+    const { userId, email, role = 'viewer' } = req.body;
 
     const project = await Project.findById(req.params.id);
 
@@ -347,6 +395,92 @@ router.post('/:id/team', authenticate, async (req, res) => {
       });
     }
 
+    if (!userId && !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID or email is required.',
+      });
+    }
+
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await User.findByEmail(normalizedEmail);
+
+      if (user) {
+        await project.addTeamMember(user._id, role);
+
+        const updatedProject = await Project.findById(project._id).populate(
+          'team.user',
+          'name email avatar'
+        );
+
+        await triggerProjectEvent(project._id, 'team.updated', { team: updatedProject.team });
+
+        const newMember = updatedProject.team.find(
+          (member) => member.user._id.toString() === user._id.toString()
+        );
+
+        return res.json({
+          success: true,
+          message: 'Team member added successfully.',
+          data: { member: newMember },
+        });
+      }
+
+      const existingInvite = project.invites.find(
+        (invite) =>
+          invite.email === normalizedEmail &&
+          invite.status === 'pending' &&
+          invite.expiresAt > new Date()
+      );
+
+      if (existingInvite) {
+        return res.json({
+          success: true,
+          message: 'Invitation already sent.',
+          data: {
+            invite: {
+              email: existingInvite.email,
+              role: existingInvite.role,
+              expiresAt: existingInvite.expiresAt,
+            },
+          },
+        });
+      }
+
+      const inviteToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = hashToken(inviteToken);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      project.invites.push({
+        email: normalizedEmail,
+        role,
+        token: hashedToken,
+        invitedBy: req.userId,
+        expiresAt,
+      });
+
+      await project.save();
+
+      const inviterName = req.user?.name || 'A project owner';
+      const baseUrl = process.env.CLIENT_INVITE_URL || process.env.CLIENT_BASE_URL || process.env.APP_BASE_URL || '';
+      const inviteUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/accept-invite?token=${inviteToken}` : inviteToken;
+
+      sendProjectInvitation({
+        to: normalizedEmail,
+        projectName: project.name,
+        inviterName,
+        role,
+        inviteUrl,
+      }).catch((err) => console.error('Invite email failed:', err));
+
+      return res.status(202).json({
+        success: true,
+        message: 'Invitation sent successfully.',
+        data: { invite: { email: normalizedEmail, role, expiresAt } },
+      });
+    }
+
     await project.addTeamMember(userId, role);
 
     const updatedProject = await Project.findById(project._id).populate(
@@ -356,10 +490,14 @@ router.post('/:id/team', authenticate, async (req, res) => {
 
     await triggerProjectEvent(project._id, 'team.updated', { team: updatedProject.team });
 
+    const addedMember = updatedProject.team.find(
+      (member) => member.user._id.toString() === userId.toString()
+    );
+
     res.json({
       success: true,
       message: 'Team member added successfully.',
-      data: { team: updatedProject.team },
+      data: { member: addedMember },
     });
   } catch (error) {
     console.error('Add team member error:', error);
@@ -407,6 +545,71 @@ router.delete('/:id/team/:userId', authenticate, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to remove team member.',
+    });
+  }
+});
+
+/**
+ * POST /api/projects/invites/accept
+ * Accept a project invitation
+ */
+router.post('/invites/accept', authenticate, async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invitation token is required.',
+      });
+    }
+
+    const hashedToken = hashToken(token);
+
+    const project = await Project.findOne({
+      'invites.token': hashedToken,
+      'invites.status': 'pending',
+      'invites.expiresAt': { $gt: new Date() },
+    });
+
+    if (!project) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invitation is invalid or expired.',
+      });
+    }
+
+    const invite = project.invites.find(
+      (item) => item.token === hashedToken && item.status === 'pending'
+    );
+
+    if (!invite) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invitation is invalid or expired.',
+      });
+    }
+
+    await project.addTeamMember(req.userId, invite.role);
+
+    invite.status = 'accepted';
+    invite.acceptedAt = new Date();
+    invite.acceptedBy = req.userId;
+
+    await project.save();
+
+    await triggerProjectEvent(project._id, 'team.updated', { team: project.team });
+
+    res.json({
+      success: true,
+      message: 'Invitation accepted successfully.',
+      data: { projectId: project._id },
+    });
+  } catch (error) {
+    console.error('Accept invite error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to accept invitation.',
     });
   }
 });

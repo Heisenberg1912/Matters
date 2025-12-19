@@ -71,6 +71,17 @@ const projectSchema = new mongoose.Schema(
       role: { type: String, enum: ['manager', 'supervisor', 'worker', 'viewer'] },
       addedAt: { type: Date, default: Date.now },
     }],
+    invites: [{
+      email: { type: String, required: true, lowercase: true, trim: true },
+      role: { type: String, enum: ['manager', 'supervisor', 'worker', 'viewer'], default: 'viewer' },
+      token: { type: String, required: true },
+      status: { type: String, enum: ['pending', 'accepted', 'expired'], default: 'pending' },
+      invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      invitedAt: { type: Date, default: Date.now },
+      expiresAt: { type: Date, required: true },
+      acceptedAt: Date,
+      acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    }],
     tags: [String],
     coverImage: String,
     documents: [{

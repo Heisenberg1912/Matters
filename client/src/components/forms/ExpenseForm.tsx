@@ -117,7 +117,7 @@ export function ExpenseForm({ expense, open, onClose }: ExpenseFormProps) {
                     </FormControl>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id} className="text-sm xs:text-base">
+                        <SelectItem key={category.id} value={category.name} className="text-sm xs:text-base">
                           {category.name}
                         </SelectItem>
                       ))}

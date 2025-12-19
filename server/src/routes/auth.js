@@ -1,6 +1,7 @@
 import express from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
+import Project from '../models/Project.js';
 import {
   generateTokenPair,
   verifyRefreshToken,
@@ -11,8 +12,42 @@ import {
 } from '../utils/jwt.js';
 import { authenticate, rateLimit } from '../middleware/auth.js';
 import { sendEmail } from '../utils/email.js';
+import { triggerProjectEvent } from '../utils/realtime.js';
 
 const router = express.Router();
+
+const acceptProjectInvitesForUser = async (user) => {
+  const inviteProjects = await Project.find({
+    'invites.email': user.email,
+    'invites.status': 'pending',
+    'invites.expiresAt': { $gt: new Date() },
+  });
+
+  for (const project of inviteProjects) {
+    const invite = project.invites.find(
+      (item) => item.email === user.email && item.status === 'pending' && item.expiresAt > new Date()
+    );
+
+    if (!invite) {
+      continue;
+    }
+
+    const alreadyOnTeam = project.team.some(
+      (member) => member.user.toString() === user._id.toString()
+    );
+
+    if (!alreadyOnTeam) {
+      project.team.push({ user: user._id, role: invite.role, addedAt: new Date() });
+    }
+
+    invite.status = 'accepted';
+    invite.acceptedAt = new Date();
+    invite.acceptedBy = user._id;
+
+    await project.save();
+    await triggerProjectEvent(project._id, 'team.updated', { team: project.team });
+  }
+};
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -65,6 +100,8 @@ router.post('/register', rateLimit({ max: 5, windowMs: 60 * 60 * 1000 }), async 
     user.verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await user.save();
+
+    await acceptProjectInvitesForUser(user);
 
     // Generate tokens
     const tokens = generateTokenPair(user._id, { role: user.role });
@@ -248,6 +285,8 @@ router.post('/google', async (req, res) => {
       user.lastLogin = new Date();
       await user.save();
     }
+
+    await acceptProjectInvitesForUser(user);
 
     if (!user.isActive) {
       return res.status(403).json({

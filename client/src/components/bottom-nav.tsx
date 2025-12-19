@@ -9,6 +9,13 @@ const navItems = [
   { to: "/contractor", label: "CONTRACTOR", shortLabel: "TEAM", icon: UserRound }
 ];
 
+// Haptic feedback for supported devices
+const triggerHaptic = () => {
+  if (navigator.vibrate) {
+    navigator.vibrate(10);
+  }
+};
+
 export default function BottomNav() {
   return (
     <nav className="sticky bottom-0 z-30 bg-[#090909] safe-bottom">
@@ -21,9 +28,11 @@ export default function BottomNav() {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={triggerHaptic}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center gap-0.5 xs:gap-1 rounded-xl px-1 xs:px-2 py-1 transition active:scale-95",
+                "flex flex-col items-center gap-0.5 xs:gap-1 rounded-xl px-1 xs:px-2 py-1",
+                "transition active:scale-95 touch-target focus-ring no-select",
                 isActive ? "text-[var(--pill,#cfe0ad)]" : "text-[#bdbdbd]"
               )
             }

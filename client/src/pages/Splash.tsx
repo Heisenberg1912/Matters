@@ -2,14 +2,21 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneShell from "@/components/phone-shell";
 import splashIcon from "../assets/branding/splash-icon.png";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Splash() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    const t = setTimeout(() => navigate("/home"), 1000);
+    if (isLoading) {
+      return () => undefined;
+    }
+
+    const nextRoute = isAuthenticated ? "/home" : "/login";
+    const t = setTimeout(() => navigate(nextRoute), 800);
     return () => clearTimeout(t);
-  }, [navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   return (
     <PhoneShell className="items-center justify-center bg-[radial-gradient(circle_at_top,#0f160f_0%,#050505_55%,#020202_100%)]">

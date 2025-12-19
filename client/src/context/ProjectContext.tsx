@@ -5,6 +5,8 @@ import { useInventoryStore } from '../store/inventoryStore';
 import { useDocumentStore } from '../store/documentStore';
 import { useTeamStore } from '../store/teamStore';
 import { useChatStore } from '../store/chatStore';
+import { useScheduleStore } from '../store/scheduleStore';
+import { useUploadsStore } from '../store/uploadsStore';
 import { useAuth } from './AuthContext';
 import { getProjectChannelName, subscribeToChannel, unsubscribeFromChannel } from '@/lib/realtime';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -41,6 +43,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchTeamMembers = useTeamStore((state) => state.fetchTeamMembers);
   const loadChatHistory = useChatStore((state) => state.loadHistory);
   const appendChatMessage = useChatStore((state) => state.appendMessage);
+  const fetchScheduleData = useScheduleStore((state) => state.fetchScheduleData);
+  const fetchUploads = useUploadsStore((state) => state.fetchUploads);
 
   // Sync all stores with current project data
   const syncAllStores = useCallback(async () => {
@@ -55,18 +59,32 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         fetchInventoryData(projectId),
         fetchDocuments(projectId),
         fetchTeamMembers(projectId),
+        fetchScheduleData(projectId),
+        fetchUploads(projectId),
         loadChatHistory(projectId),
       ]);
     } catch (err) {
       console.error('Failed to sync stores:', err);
     }
-  }, [currentProject?._id, isAuthenticated, fetchBudgetData, fetchInventoryData, fetchDocuments, fetchTeamMembers, loadChatHistory]);
+  }, [
+    currentProject?._id,
+    isAuthenticated,
+    fetchBudgetData,
+    fetchInventoryData,
+    fetchDocuments,
+    fetchTeamMembers,
+    fetchScheduleData,
+    fetchUploads,
+    loadChatHistory,
+  ]);
 
   // Set current project and sync stores
   const setCurrentProject = useCallback((project: Project | null) => {
     setCurrentProjectState(project);
     if (project) {
       authStorage.setCurrentProject(project._id);
+    } else {
+      authStorage.clearCurrentProject();
     }
   }, []);
 
@@ -101,9 +119,13 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (response.success && response.data?.projects) {
         setProjects(response.data.projects);
 
-        // Auto-select first project if none selected
+        const storedProjectId = authStorage.getCurrentProjectId();
+        const storedProject = storedProjectId
+          ? response.data.projects.find((project) => project._id === storedProjectId)
+          : null;
+
         if (!currentProject && response.data.projects.length > 0) {
-          setCurrentProject(response.data.projects[0]);
+          setCurrentProject(storedProject || response.data.projects[0]);
         }
       }
     } catch (err) {
@@ -227,6 +249,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const handleUploadsUpdate = () => {
       fetchDocuments(currentProject._id);
+      fetchUploads(currentProject._id);
     };
 
     const handleTeamUpdate = () => {
@@ -241,6 +264,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     const handleStageUpdate = () => {
+      fetchScheduleData(currentProject._id);
       showToast({
         type: 'info',
         message: 'Stage updated',
@@ -309,6 +333,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     fetchDocuments,
     fetchInventoryData,
     fetchTeamMembers,
+    fetchScheduleData,
+    fetchUploads,
     isAuthenticated,
     showToast,
   ]);

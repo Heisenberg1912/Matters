@@ -21,6 +21,8 @@ import inventoryRoutes from './routes/inventory.js';
 import mlRoutes from './routes/ml.js';
 import realtimeRoutes from './routes/realtime.js';
 import paymentsRoutes from './routes/payments.js';
+import contractorRoutes from './routes/contractors.js';
+import supportRoutes from './routes/support.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -133,6 +135,8 @@ app.use(`${API_PREFIX}/inventory`, inventoryRoutes);
 app.use(`${API_PREFIX}/ml`, mlRoutes);
 app.use(`${API_PREFIX}/realtime`, realtimeRoutes);
 app.use(`${API_PREFIX}/payments`, paymentsRoutes);
+app.use(`${API_PREFIX}/contractors`, contractorRoutes);
+app.use(`${API_PREFIX}/support`, supportRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi, authStorage, type User, type AuthTokens } from '../lib/api';
+import { authApi, authStorage, projectsApi, type User, type AuthTokens } from '../lib/api';
 import { getUserChannelName, resetPusherClient, subscribeToChannel, unsubscribeFromChannel } from '@/lib/realtime';
 import { useNotifications } from '@/hooks/use-notifications';
 
@@ -29,6 +29,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = !!user && authStorage.isAuthenticated();
+
+  const acceptPendingInvite = useCallback(async () => {
+    const token = localStorage.getItem('pending-invite-token');
+    if (!token) return;
+    try {
+      await projectsApi.acceptInvite(token);
+      localStorage.removeItem('pending-invite-token');
+    } catch (err) {
+      console.error('Failed to accept pending invite:', err);
+    }
+  }, []);
 
   // Check auth status on mount
   useEffect(() => {
@@ -62,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.success && response.data?.user) {
         setUser(response.data.user);
         resetPusherClient();
+        await acceptPendingInvite();
       } else {
         throw new Error(response.error || 'Login failed');
       }
@@ -82,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.success && response.data?.user) {
         setUser(response.data.user);
         resetPusherClient();
+        await acceptPendingInvite();
       } else {
         throw new Error(response.error || 'Google login failed');
       }
@@ -102,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.success && response.data?.user) {
         setUser(response.data.user);
         resetPusherClient();
+        await acceptPendingInvite();
       } else {
         throw new Error(response.error || 'Registration failed');
       }

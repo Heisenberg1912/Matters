@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
@@ -11,6 +11,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2, User, Phone } from 'luc
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -58,7 +59,8 @@ export default function Register() {
         phone: formData.phone,
         role: formData.role,
       });
-      navigate('/home');
+      const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
+      navigate(redirectTo);
     } catch {
       // Error is handled by context
     }
@@ -276,7 +278,10 @@ export default function Register() {
             </div>
 
             <GoogleSignInButton
-              onSuccess={() => navigate('/home')}
+              onSuccess={() => {
+                const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
+                navigate(redirectTo);
+              }}
               onError={(message) => setLocalError(message)}
             />
 

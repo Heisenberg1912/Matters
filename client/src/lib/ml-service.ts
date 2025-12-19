@@ -172,10 +172,11 @@ export async function analyzeConstructionPhoto(imageId: string, imageUrl?: strin
 
   const safetyIssues: SafetyIssue[] = [];
   if (Math.random() > 0.6) {
-    const issueTypes: SafetyIssue['type'][] = ['helmet', 'vest', 'scaffolding', 'debris', 'equipment'];
+    const issueTypes = ['helmet', 'vest', 'scaffolding', 'debris', 'equipment'] as const;
+    const severities = ['low', 'medium', 'high'] as const;
     safetyIssues.push({
       type: issueTypes[randomInt(0, issueTypes.length)],
-      severity: ['low', 'medium', 'high'][randomInt(0, 3)] as SafetyIssue['severity'],
+      severity: severities[randomInt(0, 3)],
       description: 'Potential safety concern detected in work area',
       location: 'Zone ' + String.fromCharCode(65 + randomInt(0, 4))
     });

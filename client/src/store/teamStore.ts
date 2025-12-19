@@ -6,6 +6,7 @@ import { projectsApi, authStorage } from '../lib/api';
 
 interface TeamStore {
   members: TeamMember[];
+  invites: Array<{ email: string; role: string; expiresAt?: string }>;
   isLoading: boolean;
   isSubmitting: boolean;
   error: string | null;
@@ -54,6 +55,7 @@ export const useTeamStore = create<TeamStore>()(
   persist(
     (set, get) => ({
       members: seedTeamMembers(),
+      invites: [],
       isLoading: false,
       isSubmitting: false,
       error: null,
@@ -73,6 +75,7 @@ export const useTeamStore = create<TeamStore>()(
             const members = response.data.team.map(mapApiTeamMember);
             set({
               members: members.length > 0 ? members : get().members,
+              invites: response.data.invites || [],
               lastSynced: new Date().toISOString(),
             });
           }
@@ -94,6 +97,13 @@ export const useTeamStore = create<TeamStore>()(
             const newMember = mapApiTeamMember(response.data.member);
             set((state) => ({
               members: [...state.members, newMember],
+            }));
+          }
+
+          if (response.success && response.data?.invite) {
+            const newInvite = response.data.invite;
+            set((state) => ({
+              invites: [...state.invites, newInvite],
             }));
           }
         } catch (error) {

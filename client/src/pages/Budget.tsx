@@ -1,83 +1,46 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import BottomNav from "@/components/bottom-nav";
-import PhoneShell from "@/components/phone-shell";
+import PageLayout from "@/components/page-layout";
 import ProgressRing from "@/components/progress-ring";
-import { AnimatedPage } from "@/components/AnimatedPage";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ExpenseForm } from "@/components/forms/ExpenseForm";
-import { useProjectStore, useBudgetStore } from "@/store";
+import { useBudgetStore } from "@/store";
 import { staggerContainer, listItem, cardHover } from "@/lib/animations";
+import { useProject } from "@/context/ProjectContext";
 
 export default function Budget() {
-  const navigate = useNavigate();
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
-  const mode = useProjectStore((state) => state.mode);
-  const setMode = useProjectStore((state) => state.setMode);
+  const { currentProject } = useProject();
   const categories = useBudgetStore((state) => state.categories);
   const expenses = useBudgetStore((state) => state.expenses);
   const totalAllocated = useBudgetStore((state) => state.getTotalAllocated());
   const totalSpent = useBudgetStore((state) => state.getTotalSpent());
   const percentSpent = useBudgetStore((state) => state.getPercentSpent());
-
-  const menuItems = [
-    { label: "Your Subscription", path: "/subscription" },
-    { label: "Hire a Contractor", path: "/hire-contractor" },
-    { label: "Privacy Policy", path: "/privacy-policy" },
-    { label: "News & Updates", path: "/news-updates" },
-    { label: "Visit Builtattic", path: "/visit-builtattic" },
-    { label: "Settings", path: "/settings" }
-  ];
+  const budgetError = useBudgetStore((state) => state.error);
 
   return (
-    <AnimatedPage>
-      <PhoneShell>
-        <Sheet>
-          <div className="flex h-full flex-col">
-            {/* Header - Mobile Optimized */}
-            <header className="flex flex-col gap-3 xs:gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 rounded-b-[30px] xs:rounded-b-[40px] sm:rounded-b-[50px] md:rounded-b-[60px] border-b border-[#1f1f1f] bg-[#050505] px-4 py-4 xs:px-5 xs:py-5 sm:px-6 sm:py-8 md:px-10 md:py-10 lg:px-24 lg:py-16">
-              <div className="flex items-center gap-3 xs:gap-4 sm:gap-6">
-                <SheetTrigger asChild>
-                  <button type="button" className="shrink-0">
-                    <Avatar className="h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 border-2 border-[#232323]">
-                      <AvatarFallback className="text-sm xs:text-base sm:text-lg md:text-xl">G</AvatarFallback>
-                    </Avatar>
-                  </button>
-                </SheetTrigger>
-
-                <div className="flex flex-col text-white min-w-0 flex-1">
-                  <span className="text-base xs:text-lg sm:text-2xl md:text-3xl font-semibold truncate">Oh Hi, Guest!</span>
-                  <span className="text-[0.6rem] xs:text-xs sm:text-sm uppercase tracking-[0.15em] xs:tracking-[0.25em] sm:tracking-[0.35em] text-[#c7c7c7] truncate">Budget Management</span>
-                </div>
-              </div>
-
-              {/* Mode Toggle */}
-              <div className="flex rounded-full border border-[#2a2a2a] bg-[#0c0c0c] p-1 xs:p-1.5 sm:p-2 text-[0.65rem] xs:text-xs sm:text-sm md:text-base font-semibold sm:ml-auto self-start sm:self-auto w-fit">
-                {(["construction", "refurbish"] as const).map((state) => (
-                  <button
-                    key={state}
-                    type="button"
-                    onClick={() => setMode(state)}
-                    className={`rounded-full px-2.5 py-1 xs:px-3 xs:py-1.5 sm:px-4 sm:py-2 md:px-6 transition active:scale-95 ${
-                      mode === state ? "bg-[var(--pill,#cfe0ad)] text-black" : "text-white"
-                    }`}
-                  >
-                    <span className="hidden sm:inline">{state.toUpperCase()}</span>
-                    <span className="sm:hidden">{state === "construction" ? "BUILD" : "REFURB"}</span>
-                  </button>
-                ))}
-              </div>
-            </header>
-
-            {/* Main Content */}
-            <div className="flex-1 overflow-y-auto px-3 xs:px-4 sm:px-6 md:px-10 lg:px-24 pb-20 xs:pb-24 sm:pb-28 md:pb-32 touch-scroll">
-              <div className="mx-auto w-full max-w-6xl">
+    <PageLayout
+      title="Budget Management"
+      extras={
+        <ExpenseForm
+          open={expenseFormOpen}
+          onClose={() => setExpenseFormOpen(false)}
+        />
+      }
+    >
                 {/* Budget Overview Section */}
                 <section className="mt-4 xs:mt-6 sm:mt-10 md:mt-16">
                   <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">Budget Overview</h2>
+                  {!currentProject && (
+                    <Card className="mt-4 border border-[#242424] bg-[#101010] p-4 xs:p-5 sm:p-6 text-sm xs:text-base text-[#bdbdbd]">
+                      Select or create a project to view budget details.
+                    </Card>
+                  )}
+                  {budgetError && (
+                    <Card className="mt-4 border border-red-500/40 bg-red-500/10 p-4 xs:p-5 sm:p-6 text-sm xs:text-base text-red-200">
+                      {budgetError}
+                    </Card>
+                  )}
                   <Card className="mt-3 xs:mt-4 sm:mt-6 md:mt-8 border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-3 xs:p-4 sm:p-6 md:p-8 lg:p-10">
                     <div className="grid grid-cols-1 gap-4 xs:gap-5 sm:gap-6 md:gap-8 lg:grid-cols-2">
                       {/* Progress Ring */}
@@ -224,33 +187,6 @@ export default function Budget() {
                     </span>
                   </motion.button>
                 </section>
-              </div>
-            </div>
-
-            <BottomNav />
-
-            <ExpenseForm
-              open={expenseFormOpen}
-              onClose={() => setExpenseFormOpen(false)}
-            />
-          </div>
-
-          {/* Side Menu Sheet */}
-          <SheetContent>
-            <div className="space-y-5 xs:space-y-6 sm:space-y-8 md:space-y-10 text-base xs:text-lg sm:text-xl md:text-2xl pt-6 xs:pt-8 sm:pt-10">
-              {menuItems.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => navigate(item.path)}
-                  className="w-full text-left font-medium transition hover:text-[#cfe0ad] active:scale-[0.98]"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </PhoneShell>
-    </AnimatedPage>
+    </PageLayout>
   );
 }

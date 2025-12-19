@@ -35,6 +35,17 @@ export interface User {
   updatedAt: string;
 }
 
+export interface ContractorProfile {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: { name?: string; address?: string; license?: string };
+  specializations?: string[];
+  rating?: { average: number; count: number };
+  createdAt?: string;
+}
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -153,9 +164,18 @@ export interface Project {
   description?: string;
   type: string;
   status: string;
+  priority?: string;
   owner: string | { _id: string; name: string; email: string };
-  location?: { address?: string; city?: string; state?: string; country?: string };
-  budget: { estimated: number; spent: number };
+  location?: {
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+    coordinates?: { lat?: number; lng?: number };
+  };
+  budget: { estimated: number; spent: number; currency?: string };
+  timeline?: { startDate?: string; expectedEndDate?: string; actualEndDate?: string };
   progress?: { percentage: number };
   currentStage?: { _id: string; name: string };
   team?: Array<{ user: string; role: string }>;
@@ -200,6 +220,21 @@ export interface Report {
   generatedAt: string;
 }
 
+export interface SupportTicket {
+  _id: string;
+  ticketNumber: string;
+  project: string;
+  user: string;
+  subject: string;
+  category: string;
+  message: string;
+  status: 'pending' | 'in_progress' | 'resolved';
+  priority?: 'low' | 'medium' | 'high';
+  attachments?: Array<{ _id: string; filename?: string; storage?: { url?: string } }>;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 // Auth storage functions
 export const authStorage = {
   getAccessToken: (): string | null => localStorage.getItem(ACCESS_TOKEN_KEY),
@@ -220,11 +255,15 @@ export const authStorage = {
   setCurrentProject: (projectId: string): void => {
     localStorage.setItem(CURRENT_PROJECT_KEY, projectId);
   },
+  clearCurrentProject: (): void => {
+    localStorage.removeItem(CURRENT_PROJECT_KEY);
+  },
 
   clear: (): void => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(CURRENT_PROJECT_KEY);
   },
 
   isAuthenticated: (): boolean => !!localStorage.getItem(ACCESS_TOKEN_KEY),
@@ -433,17 +472,36 @@ export const projectsApi = {
   },
 
   getTeam: async (projectId: string) => {
-    const response = await api.get<ApiResponse<{ team: TeamMember[] }>>(`/projects/${projectId}/team`);
+    const response = await api.get<ApiResponse<{ team: TeamMember[]; invites?: Array<{ email: string; role: string; expiresAt?: string }> }>>(`/projects/${projectId}/team`);
     return response.data;
   },
 
-  addTeamMember: async (projectId: string, data: { email: string; role: string }) => {
-    const response = await api.post<ApiResponse<{ member: TeamMember }>>(`/projects/${projectId}/team`, data);
+  addTeamMember: async (projectId: string, data: { email?: string; userId?: string; role: string }) => {
+    const response = await api.post<ApiResponse<{ member?: TeamMember; invite?: { email: string; role: string; expiresAt?: string } }>>(
+      `/projects/${projectId}/team`,
+      data
+    );
     return response.data;
   },
 
   removeTeamMember: async (projectId: string, userId: string) => {
     const response = await api.delete<ApiResponse>(`/projects/${projectId}/team/${userId}`);
+    return response.data;
+  },
+
+  getStats: async (projectId: string) => {
+    const response = await api.get<ApiResponse<{
+      stages: { total: number; completed: number; inProgress: number; pending: number };
+      progress: number;
+      budget: { estimated: number; spent: number; utilization: number };
+      timeline: { startDate?: string; expectedEndDate?: string; daysRemaining?: number | null };
+      metrics: { totalUploads: number; totalBills: number; completedStages: number };
+    }>>(`/projects/${projectId}/stats`);
+    return response.data;
+  },
+
+  acceptInvite: async (token: string) => {
+    const response = await api.post<ApiResponse<{ projectId: string }>>('/projects/invites/accept', { token });
     return response.data;
   },
 };
@@ -635,8 +693,16 @@ export const stagesApi = {
       status: string;
       progress: number;
       startDate?: string;
-      endDate?: string;
-      tasks: Array<{ name: string; status: string; assignedTo?: string }>;
+      expectedEndDate?: string;
+      actualEndDate?: string;
+      tasks: Array<{
+        _id: string;
+        title: string;
+        status: 'pending' | 'in_progress' | 'completed';
+        assignee?: { _id?: string; name?: string; email?: string; avatar?: string } | string;
+        dueDate?: string;
+        description?: string;
+      }>;
     }> }>>(`/stages/project/${projectId}`);
     return response.data;
   },
@@ -646,12 +712,12 @@ export const stagesApi = {
     return response.data;
   },
 
-  create: async (data: { project: string; name: string; description?: string; order?: number }) => {
+  create: async (data: { project: string; name: string; description?: string; order?: number; startDate?: string; expectedEndDate?: string }) => {
     const response = await api.post<ApiResponse<{ stage: unknown }>>('/stages', data);
     return response.data;
   },
 
-  update: async (id: string, data: { name?: string; description?: string; status?: string; progress?: number }) => {
+  update: async (id: string, data: { name?: string; description?: string; status?: string; progress?: number; startDate?: string; expectedEndDate?: string }) => {
     const response = await api.patch<ApiResponse<{ stage: unknown }>>(`/stages/${id}`, data);
     return response.data;
   },
@@ -661,13 +727,33 @@ export const stagesApi = {
     return response.data;
   },
 
-  addTask: async (stageId: string, task: { name: string; description?: string; assignedTo?: string }) => {
-    const response = await api.post<ApiResponse<{ stage: unknown }>>(`/stages/${stageId}/tasks`, task);
+  addTask: async (stageId: string, task: { name: string; description?: string; assignedTo?: string; dueDate?: string; priority?: string }) => {
+    const payload = {
+      title: task.name,
+      description: task.description,
+      assignee: task.assignedTo,
+      dueDate: task.dueDate,
+      priority: task.priority,
+    };
+    const response = await api.post<ApiResponse<{ stage: unknown }>>(`/stages/${stageId}/tasks`, payload);
     return response.data;
   },
 
-  updateTask: async (stageId: string, taskId: string, data: { name?: string; status?: string; description?: string }) => {
-    const response = await api.patch<ApiResponse<{ stage: unknown }>>(`/stages/${stageId}/tasks/${taskId}`, data);
+  updateTask: async (stageId: string, taskId: string, data: { name?: string; status?: string; description?: string; assignedTo?: string; dueDate?: string; priority?: string }) => {
+    const payload = {
+      title: data.name,
+      status: data.status,
+      description: data.description,
+      assignee: data.assignedTo,
+      dueDate: data.dueDate,
+      priority: data.priority,
+    };
+    const response = await api.patch<ApiResponse<{ stage: unknown }>>(`/stages/${stageId}/tasks/${taskId}`, payload);
+    return response.data;
+  },
+
+  deleteTask: async (stageId: string, taskId: string) => {
+    const response = await api.delete<ApiResponse>(`/stages/${stageId}/tasks/${taskId}`);
     return response.data;
   },
 };
@@ -812,6 +898,30 @@ export const reportsApi = {
   },
 };
 
+// ===== SUPPORT API =====
+export const supportApi = {
+  getTickets: async (projectId: string) => {
+    const response = await api.get<ApiResponse<{ tickets: SupportTicket[] }>>(`/support/project/${projectId}`);
+    return response.data;
+  },
+
+  createTicket: async (data: { project: string; subject: string; category: string; message: string; attachments?: string[]; priority?: string }) => {
+    const response = await api.post<ApiResponse<{ ticket: SupportTicket }>>('/support', data);
+    return response.data;
+  },
+};
+
+// ===== CONTRACTORS API =====
+export const contractorsApi = {
+  getAll: async (params?: { search?: string; specialty?: string; page?: number; limit?: number }) => {
+    const response = await api.get<ApiResponse<{ contractors: ContractorProfile[]; pagination: PaginatedResponse<ContractorProfile>['pagination'] }>>(
+      '/contractors',
+      { params }
+    );
+    return response.data;
+  },
+};
+
 // Health check
 export const checkHealth = async () => {
   try {
@@ -838,6 +948,8 @@ export default {
   team: teamApi,
   documents: documentsApi,
   reports: reportsApi,
+  contractors: contractorsApi,
+  support: supportApi,
   checkHealth,
   authStorage,
 };

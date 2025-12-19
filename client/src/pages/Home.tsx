@@ -2,14 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/bottom-nav";
 import PhoneShell from "@/components/phone-shell";
+import PageHeader from "@/components/page-header";
+import SideMenu from "@/components/side-menu";
 import ProgressRing from "@/components/progress-ring";
 import { Fab } from "@/components/fab";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import NotificationsSheet from "@/components/notifications-sheet";
 import { Card } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet } from "@/components/ui/sheet";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useSwipe } from "@/hooks/use-swipe";
+import { useAuth } from "@/context/AuthContext";
+import { useProject } from "@/context/ProjectContext";
+import { useBudgetStore, useScheduleStore, useTeamStore } from "@/store";
 import {
   Skeleton,
   SkeletonStageSlider,
@@ -18,13 +23,11 @@ import {
   SkeletonResourceCard
 } from "@/components/ui/skeleton";
 import {
-  Bell,
   Cloud,
   Sun,
   CloudRain,
   Wind,
   Droplets,
-  TrendingUp,
   Calendar,
   DollarSign,
   Users,
@@ -64,7 +67,7 @@ const stageSlides = [
 const insightCards = [
   {
     id: "weather",
-    badge: "Bhopal | 25°",
+    badge: "Bhopal | 25C",
     title: "Weather insight #1",
     text: "Curing slab of upper floor should be done today to get optimal sunlight.",
     image: insightWeather
@@ -76,13 +79,6 @@ const insightCards = [
     text: "Stick with the current crew to avoid budget overruns.",
     image: insightFact
   }
-];
-
-const quickStats = [
-  { label: "Budget Spent", value: "₹2.4L", subtext: "of ₹45L", icon: DollarSign, color: "#cfe0ad" },
-  { label: "Tasks Done", value: "12", subtext: "of 48 total", icon: CheckCircle2, color: "#a8d5ba" },
-  { label: "Days Left", value: "342", subtext: "until deadline", icon: Calendar, color: "#f0c674" },
-  { label: "Team Size", value: "8", subtext: "active members", icon: Users, color: "#8fbcbb" }
 ];
 
 const recentActivities = [
@@ -115,13 +111,62 @@ const weatherData = {
 };
 
 export default function Home() {
-  const [mode, setMode] = useState<"construction" | "refurbish">("construction");
   const [stageIndex, setStageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { user } = useAuth();
+  const { currentProject } = useProject();
+  const totalAllocated = useBudgetStore((state) => state.getTotalAllocated());
+  const totalSpent = useBudgetStore((state) => state.getTotalSpent());
+  const tasksByStatus = useScheduleStore((state) => state.getTasksByStatus());
+  const overallProgress = useScheduleStore((state) => state.getOverallProgress());
+  const activeMembersCount = useTeamStore((state) => state.getActiveMembersCount());
   const navigate = useNavigate();
   const currentStage = stageSlides[stageIndex];
   const { showToast } = useNotifications();
+  const progressPercent = currentProject?.progress?.percentage ?? overallProgress;
+  const tasksTotal = tasksByStatus.completed + tasksByStatus.in_progress + tasksByStatus.pending;
+  const deadline = currentProject?.timeline?.expectedEndDate || currentProject?.endDate;
+  const daysLeft = deadline
+    ? Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+
+  const quickStats = [
+    {
+      label: "Budget Spent",
+      value: formatCurrency(totalSpent),
+      subtext: `of ${formatCurrency(totalAllocated)}`,
+      icon: DollarSign,
+      color: "#cfe0ad",
+    },
+    {
+      label: "Tasks Done",
+      value: `${tasksByStatus.completed}`,
+      subtext: `of ${tasksTotal} total`,
+      icon: CheckCircle2,
+      color: "#a8d5ba",
+    },
+    {
+      label: "Days Left",
+      value: daysLeft !== null ? `${daysLeft}` : "TBD",
+      subtext: "until deadline",
+      icon: Calendar,
+      color: "#f0c674",
+    },
+    {
+      label: "Team Size",
+      value: `${activeMembersCount}`,
+      subtext: "active members",
+      icon: Users,
+      color: "#8fbcbb",
+    },
+  ];
 
   const unreadCount = mockNotifications.filter(n => n.unread).length;
 
@@ -130,14 +175,6 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  const menuItems = [
-    { label: "Your Subscription", path: "/subscription" },
-    { label: "Hire a Contractor", path: "/hire-contractor" },
-    { label: "Privacy Policy", path: "/privacy-policy" },
-    { label: "News & Updates", path: "/news-updates" },
-    { label: "Visit Builtattic", path: "/visit-builtattic" },
-    { label: "Settings", path: "/settings" }
-  ];
 
   const { bind: swipeStage } = useSwipe({
     onSwipedLeft: () => cycleStage(1),
@@ -174,97 +211,19 @@ export default function Home() {
     <PhoneShell>
       <Sheet>
         <div className="flex h-full flex-col">
-          {/* Header - Mobile Optimized */}
-          <header className="flex flex-col gap-3 xs:gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6 rounded-b-[30px] xs:rounded-b-[40px] sm:rounded-b-[50px] md:rounded-b-[60px] border-b border-[#1f1f1f] bg-[#050505] px-4 py-4 xs:px-5 xs:py-5 sm:px-6 sm:py-8 md:px-10 md:py-10 lg:px-24 lg:py-16">
-            <div className="flex items-center gap-3 xs:gap-4 sm:gap-6 flex-1">
-              <SheetTrigger asChild>
-                <button type="button" className="shrink-0">
-                  <Avatar className="h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 border-2 border-[#232323]">
-                    <AvatarFallback className="text-sm xs:text-base sm:text-lg md:text-xl">G</AvatarFallback>
-                  </Avatar>
-                </button>
-              </SheetTrigger>
+          {/* Header */}
+          <PageHeader
+            showNotifications
+            notificationCount={unreadCount}
+            onNotificationClick={() => setNotificationsOpen(true)}
+          />
 
-              <div className="flex flex-col text-white min-w-0 flex-1">
-                <span className="text-base xs:text-lg sm:text-2xl md:text-3xl font-semibold truncate">Oh Hi, Guest!</span>
-                <span className="text-[0.6rem] xs:text-xs sm:text-sm uppercase tracking-[0.15em] xs:tracking-[0.25em] sm:tracking-[0.35em] text-[#c7c7c7] truncate">Project Skyline</span>
-              </div>
-
-              {/* Notifications Bell */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 rounded-full border border-[#2a2a2a] bg-[#0c0c0c] transition hover:border-[#3a3a3a] active:scale-95"
-                >
-                  <Bell className="h-5 w-5 xs:h-6 xs:w-6 text-white" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 xs:h-5 xs:w-5 flex items-center justify-center rounded-full bg-[#cfe0ad] text-[0.6rem] xs:text-xs font-bold text-black animate-pulse-glow">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Notifications Dropdown */}
-                {showNotifications && (
-                  <div className="absolute right-0 top-full mt-2 w-72 xs:w-80 rounded-2xl border border-[#2a2a2a] bg-[#0c0c0c] shadow-2xl z-50 overflow-hidden animate-fade-in">
-                    <div className="p-3 border-b border-[#1f1f1f]">
-                      <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {mockNotifications.map((notif) => (
-                        <button
-                          key={notif.id}
-                          className={`w-full p-3 text-left border-b border-[#1a1a1a] hover:bg-[#151515] transition ${notif.unread ? "bg-[#0f1510]" : ""}`}
-                          onClick={() => {
-                            showToast({ type: "info", message: notif.title, description: notif.message });
-                            setShowNotifications(false);
-                          }}
-                        >
-                          <div className="flex items-start gap-2">
-                            {notif.unread && <span className="h-2 w-2 rounded-full bg-[#cfe0ad] mt-1.5 shrink-0" />}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-white truncate">{notif.title}</p>
-                              <p className="text-[0.65rem] text-[#888] truncate">{notif.message}</p>
-                            </div>
-                            <span className="text-[0.6rem] text-[#666] shrink-0">{notif.time}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      className="w-full p-2.5 text-xs font-semibold text-[#cfe0ad] hover:bg-[#151515] transition"
-                      onClick={() => setShowNotifications(false)}
-                    >
-                      View All Notifications
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Mode Toggle */}
-            <div className="flex rounded-full border border-[#2a2a2a] bg-[#0c0c0c] p-1 xs:p-1.5 sm:p-2 text-[0.65rem] xs:text-xs sm:text-sm md:text-base font-semibold sm:ml-auto self-start sm:self-auto w-fit">
-              {(["construction", "refurbish"] as const).map((state) => (
-                <button
-                  key={state}
-                  type="button"
-                  onClick={() => setMode(state)}
-                  className={`rounded-full px-2.5 py-1 xs:px-3 xs:py-1.5 sm:px-4 sm:py-2 md:px-6 transition active:scale-95 ${
-                    mode === state ? "bg-[var(--pill,#cfe0ad)] text-black" : "text-white"
-                  }`}
-                >
-                  <span className="hidden sm:inline">{state.toUpperCase()}</span>
-                  <span className="sm:hidden">{state === "construction" ? "BUILD" : "REFURB"}</span>
-                </button>
-              ))}
-            </div>
-          </header>
-
-          {/* Click outside to close notifications */}
-          {showNotifications && (
-            <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-          )}
+          {/* Notifications Sheet (mobile-friendly) */}
+          <NotificationsSheet
+            open={notificationsOpen}
+            onOpenChange={setNotificationsOpen}
+            notifications={mockNotifications}
+          />
 
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto px-3 xs:px-4 sm:px-6 md:px-10 lg:px-24 pb-20 xs:pb-24 sm:pb-28 md:pb-32 touch-scroll" {...pullBind}>
@@ -290,7 +249,7 @@ export default function Home() {
                         </div>
                         <div>
                           <p className="text-[0.65rem] xs:text-xs text-[#888] uppercase tracking-wider">{weatherData.location}</p>
-                          <p className="text-2xl xs:text-3xl sm:text-4xl font-bold text-white">{weatherData.temp}°C</p>
+                          <p className="text-2xl xs:text-3xl sm:text-4xl font-bold text-white">{weatherData.temp}C</p>
                           <p className="text-xs xs:text-sm text-[#aaa]">{weatherData.condition}</p>
                         </div>
                       </div>
@@ -310,8 +269,8 @@ export default function Home() {
                         <div key={day.day} className="text-center">
                           <p className="text-[0.6rem] xs:text-xs text-[#888]">{day.day}</p>
                           <day.icon className="h-4 w-4 xs:h-5 xs:w-5 mx-auto my-1 text-[#cfe0ad]" />
-                          <p className="text-[0.6rem] xs:text-xs text-white">{day.high}°</p>
-                          <p className="text-[0.55rem] xs:text-[0.65rem] text-[#666]">{day.low}°</p>
+                          <p className="text-[0.6rem] xs:text-xs text-white">{day.high}C</p>
+                          <p className="text-[0.55rem] xs:text-[0.65rem] text-[#666]">{day.low}C</p>
                         </div>
                       ))}
                     </div>
@@ -371,7 +330,7 @@ export default function Home() {
                             className="flex h-7 w-7 xs:h-8 xs:w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-full border border-[#2a2a2a] text-base xs:text-lg sm:text-xl md:text-2xl active:scale-95 transition"
                             aria-label="Previous stage"
                           >
-                            ‹
+                            {'<'}
                           </button>
                           <span className="text-[0.55rem] xs:text-[0.6rem] sm:text-xs tracking-[0.15em] xs:tracking-[0.25em] sm:tracking-[0.4em] text-[#dcdcdc] text-center px-1 xs:px-2">{currentStage.title}</span>
                           <button
@@ -380,7 +339,7 @@ export default function Home() {
                             className="flex h-7 w-7 xs:h-8 xs:w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-full border border-[#2a2a2a] text-base xs:text-lg sm:text-xl md:text-2xl active:scale-95 transition"
                             aria-label="Next stage"
                           >
-                            ›
+                            {'>'}
                           </button>
                         </div>
 
@@ -412,22 +371,33 @@ export default function Home() {
                       <div className="flex flex-col rounded-[16px] xs:rounded-[24px] sm:rounded-[40px] md:rounded-[50px] lg:rounded-[60px] border border-[#1f1f1f] bg-[#050505] p-3 xs:p-4 sm:p-6 md:p-8 lg:p-10">
                         <div className="flex flex-col xs:flex-row items-center gap-3 xs:gap-4 sm:gap-6 md:gap-10">
                           <div className="shrink-0">
-                            <ProgressRing value={5} size={80} strokeWidth={8} className="xs:hidden" />
-                            <ProgressRing value={5} size={100} strokeWidth={10} className="hidden xs:block sm:hidden" />
-                            <ProgressRing value={5} size={140} strokeWidth={12} className="hidden sm:block md:hidden" />
-                            <ProgressRing value={5} size={180} strokeWidth={14} className="hidden md:block lg:hidden" />
-                            <ProgressRing value={5} size={240} strokeWidth={18} className="hidden lg:block" />
+                            <ProgressRing value={progressPercent} size={80} strokeWidth={8} className="xs:hidden" />
+                            <ProgressRing value={progressPercent} size={100} strokeWidth={10} className="hidden xs:block sm:hidden" />
+                            <ProgressRing value={progressPercent} size={140} strokeWidth={12} className="hidden sm:block md:hidden" />
+                            <ProgressRing value={progressPercent} size={180} strokeWidth={14} className="hidden md:block lg:hidden" />
+                            <ProgressRing value={progressPercent} size={240} strokeWidth={18} className="hidden lg:block" />
                           </div>
                           <div className="text-xs xs:text-sm sm:text-base md:text-xl lg:text-2xl text-[#d9dfcd] text-center xs:text-left">
-                            <p>100% of your inventory and budget unused</p>
+                            <p>
+                              {tasksTotal > 0
+                                ? `${tasksByStatus.completed} of ${tasksTotal} tasks completed`
+                                : "Add tasks to start tracking progress"}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="mt-3 xs:mt-4 sm:mt-6 text-5xl xs:text-6xl sm:text-7xl md:text-8xl lg:text-[140px] xl:text-[160px] font-black leading-none text-white text-center xs:text-left">0%</div>
-                        <p className="text-[0.65rem] xs:text-xs sm:text-sm md:text-lg lg:text-xl text-[#b9b9b9] text-center xs:text-left">Downloading this app is the first step.</p>
+                        <div className="mt-3 xs:mt-4 sm:mt-6 text-5xl xs:text-6xl sm:text-7xl md:text-8xl lg:text-[140px] xl:text-[160px] font-black leading-none text-white text-center xs:text-left">
+                          {Math.round(progressPercent)}%
+                        </div>
+                        <p className="text-[0.65rem] xs:text-xs sm:text-sm md:text-lg lg:text-xl text-[#b9b9b9] text-center xs:text-left">
+                          {currentProject ? "Project progress updates in real time." : "Select a project to begin tracking."}
+                        </p>
 
                         <div className="mt-4 xs:mt-5 sm:mt-8 md:mt-10 h-3 xs:h-4 sm:h-5 md:h-6 rounded-full border border-[#2a2a2a] bg-[#0d0d0d]">
-                          <div className="h-full w-[5%] rounded-full bg-[var(--pill,#cfe0ad)]" />
+                          <div
+                            className="h-full rounded-full bg-[var(--pill,#cfe0ad)]"
+                            style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
+                          />
                         </div>
                       </div>
                     </div>
@@ -557,29 +527,8 @@ export default function Home() {
           <BottomNav />
         </div>
 
-        {/* Side Menu Sheet */}
-        <SheetContent>
-          <div className="space-y-5 xs:space-y-6 sm:space-y-8 md:space-y-10 text-base xs:text-lg sm:text-xl md:text-2xl pt-6 xs:pt-8 sm:pt-10">
-            {menuItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => navigate(item.path)}
-                className="w-full text-left font-medium transition hover:text-[#cfe0ad] active:scale-[0.98]"
-              >
-                {item.label}
-              </button>
-            ))}
-            <div className="mt-10 xs:mt-14 sm:mt-20 md:mt-24 flex items-center gap-3 xs:gap-4 sm:gap-5 md:gap-6 rounded-[24px] xs:rounded-[32px] sm:rounded-[40px] md:rounded-[50px] border border-[#1f1f1f] bg-[#0a0a0a] p-4 xs:p-5 sm:p-6 md:p-8">
-              <Avatar className="h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16">
-                <AvatarFallback>G</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm xs:text-base sm:text-lg md:text-xl font-semibold">Guest #0102</p>
-                <p className="text-[0.65rem] xs:text-xs sm:text-sm text-muted">View Profile</p>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
+        {/* Side Menu */}
+        <SideMenu />
       </Sheet>
     </PhoneShell>
   );
