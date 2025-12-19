@@ -98,9 +98,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Index for faster queries
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
+// Index for faster queries (email and googleId already indexed via unique: true)
 userSchema.index({ role: 1 });
 
 // Hash password before saving
