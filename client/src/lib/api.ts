@@ -163,6 +163,7 @@ export interface Project {
   type: string;
   status: string;
   priority?: string;
+  mode?: 'construction' | 'refurbish';
   owner: string | { _id: string; name: string; email: string };
   location?: {
     address?: string;

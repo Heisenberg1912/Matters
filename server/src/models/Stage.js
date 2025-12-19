@@ -36,6 +36,15 @@ const stageSchema = new mongoose.Schema(
         'inspection',
         'handover',
         'custom',
+        // Refurbish-specific types
+        'assessment',
+        'demolition',
+        'repair',
+        'restoration',
+        'upgrade',
+        'painting',
+        'flooring',
+        'fixtures',
       ],
       default: 'custom',
     },
@@ -208,8 +217,11 @@ stageSchema.statics.findByProject = function (projectId) {
   return this.find({ project: projectId }).sort({ order: 1 });
 };
 
-// Static method to get default stages template
-stageSchema.statics.getDefaultStages = function () {
+// Static method to get default stages template for construction
+stageSchema.statics.getDefaultStages = function (mode = 'construction') {
+  if (mode === 'refurbish') {
+    return this.getRefurbishStages();
+  }
   return [
     { name: 'Ideation', type: 'ideation', order: 0, color: '#8B5CF6', icon: 'lightbulb' },
     { name: 'Planning', type: 'planning', order: 1, color: '#3B82F6', icon: 'clipboard' },
@@ -220,6 +232,23 @@ stageSchema.statics.getDefaultStages = function () {
     { name: 'Finishing', type: 'finishing', order: 6, color: '#EC4899', icon: 'paint' },
     { name: 'Inspection', type: 'inspection', order: 7, color: '#6366F1', icon: 'check' },
     { name: 'Handover', type: 'handover', order: 8, color: '#22C55E', icon: 'key' },
+  ];
+};
+
+// Static method to get default stages template for refurbishment
+stageSchema.statics.getRefurbishStages = function () {
+  return [
+    { name: 'Assessment', type: 'assessment', order: 0, color: '#8B5CF6', icon: 'search' },
+    { name: 'Planning', type: 'planning', order: 1, color: '#3B82F6', icon: 'clipboard' },
+    { name: 'Demolition', type: 'demolition', order: 2, color: '#EF4444', icon: 'hammer' },
+    { name: 'Repair', type: 'repair', order: 3, color: '#F59E0B', icon: 'wrench' },
+    { name: 'Electrical', type: 'electrical', order: 4, color: '#10B981', icon: 'bolt' },
+    { name: 'Plumbing', type: 'plumbing', order: 5, color: '#06B6D4', icon: 'water' },
+    { name: 'Flooring', type: 'flooring', order: 6, color: '#A855F7', icon: 'layers' },
+    { name: 'Painting', type: 'painting', order: 7, color: '#EC4899', icon: 'paint' },
+    { name: 'Fixtures', type: 'fixtures', order: 8, color: '#14B8A6', icon: 'lamp' },
+    { name: 'Inspection', type: 'inspection', order: 9, color: '#6366F1', icon: 'check' },
+    { name: 'Handover', type: 'handover', order: 10, color: '#22C55E', icon: 'key' },
   ];
 };
 

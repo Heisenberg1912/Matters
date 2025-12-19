@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { useEffect, useCallback, useState } from "react";
+import { Bell, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SheetTrigger } from "@/components/ui/sheet";
 import ProjectSwitcher from "@/components/project-switcher";
@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useProject } from "@/context/ProjectContext";
 import { useProjectStore } from "@/store";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/hooks/use-notifications";
 
 interface PageHeaderProps {
   title?: string;
@@ -26,9 +27,47 @@ export default function PageHeader({
   className,
 }: PageHeaderProps) {
   const { user } = useAuth();
-  const { currentProject } = useProject();
+  const { currentProject, updateProject } = useProject();
+  const { showToast } = useNotifications();
   const mode = useProjectStore((state) => state.mode);
   const setMode = useProjectStore((state) => state.setMode);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Sync local mode with project mode when project changes
+  useEffect(() => {
+    if (currentProject?.mode) {
+      setMode(currentProject.mode);
+    }
+  }, [currentProject?._id, currentProject?.mode, setMode]);
+
+  // Handle mode change with backend sync
+  const handleModeChange = useCallback(async (newMode: 'construction' | 'refurbish') => {
+    if (!currentProject?._id || newMode === mode || isUpdating) return;
+
+    setIsUpdating(true);
+    setMode(newMode); // Optimistic update
+
+    try {
+      await updateProject(currentProject._id, { mode: newMode });
+      showToast({
+        type: 'success',
+        message: `Switched to ${newMode === 'construction' ? 'Construction' : 'Refurbish'} mode`,
+        description: newMode === 'construction'
+          ? 'Showing new construction stages and features'
+          : 'Showing renovation and refurbishment stages',
+      });
+    } catch (error) {
+      // Revert on error
+      setMode(mode);
+      showToast({
+        type: 'error',
+        message: 'Failed to switch mode',
+        description: 'Please try again',
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [currentProject?._id, mode, isUpdating, setMode, updateProject, showToast]);
 
   return (
     <header
@@ -80,18 +119,25 @@ export default function PageHeader({
       </div>
 
       {/* Mode Toggle */}
-      {showModeToggle && (
+      {showModeToggle && currentProject && (
         <div className="flex rounded-full border border-[#2a2a2a] bg-[#0c0c0c] p-1 xs:p-1.5 sm:p-2 text-[0.65rem] xs:text-xs sm:text-sm md:text-base font-semibold sm:ml-auto self-start sm:self-auto w-fit">
           {(["construction", "refurbish"] as const).map((state) => (
             <button
               key={state}
               type="button"
-              onClick={() => setMode(state)}
+              onClick={() => handleModeChange(state)}
+              disabled={isUpdating}
               className={cn(
-                "rounded-full px-2.5 py-1 xs:px-3 xs:py-1.5 sm:px-4 sm:py-2 md:px-6 transition active:scale-95 touch-target focus-ring",
-                mode === state ? "bg-[var(--pill,#cfe0ad)] text-black" : "text-white"
+                "rounded-full px-2.5 py-1 xs:px-3 xs:py-1.5 sm:px-4 sm:py-2 md:px-6 transition touch-target focus-ring",
+                "flex items-center justify-center gap-1.5",
+                mode === state ? "bg-[var(--pill,#cfe0ad)] text-black" : "text-white hover:bg-[#1a1a1a]",
+                isUpdating && mode !== state && "opacity-50 cursor-not-allowed",
+                !isUpdating && "active:scale-95"
               )}
             >
+              {isUpdating && mode === state && (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              )}
               <span className="hidden sm:inline">{state.toUpperCase()}</span>
               <span className="sm:hidden">{state === "construction" ? "BUILD" : "REFURB"}</span>
             </button>

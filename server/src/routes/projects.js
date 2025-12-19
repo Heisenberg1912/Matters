@@ -174,6 +174,7 @@ router.post('/', authenticate, async (req, res) => {
       description,
       type,
       priority,
+      mode = 'construction',
       location,
       budget,
       timeline,
@@ -194,6 +195,7 @@ router.post('/', authenticate, async (req, res) => {
       description,
       type,
       priority,
+      mode,
       location,
       budget,
       timeline,
@@ -204,9 +206,9 @@ router.post('/', authenticate, async (req, res) => {
 
     await project.save();
 
-    // Create default stages if requested
+    // Create default stages if requested (mode-specific)
     if (createDefaultStages) {
-      const defaultStages = Stage.getDefaultStages();
+      const defaultStages = Stage.getDefaultStages(mode);
       const stages = await Stage.insertMany(
         defaultStages.map((stage) => ({
           ...stage,
@@ -276,6 +278,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       'status',
       'priority',
       'type',
+      'mode',
       'location',
       'budget',
       'timeline',

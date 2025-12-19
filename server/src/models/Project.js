@@ -37,6 +37,11 @@ const projectSchema = new mongoose.Schema(
       enum: ['residential', 'commercial', 'industrial', 'renovation', 'other'],
       default: 'residential',
     },
+    mode: {
+      type: String,
+      enum: ['construction', 'refurbish'],
+      default: 'construction',
+    },
     location: {
       address: String,
       city: String,
