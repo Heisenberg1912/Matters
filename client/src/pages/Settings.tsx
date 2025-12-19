@@ -7,6 +7,7 @@ import { Fab } from "@/components/fab";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useOffline } from "@/hooks/use-offline";
 import { useTheme } from "@/hooks/use-theme";
+import { useInstallPrompt } from "@/hooks/use-install-prompt";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +20,14 @@ export default function Settings() {
   const { isOnline, queue, lastSynced, syncNow } = useOffline();
   const { showToast } = useNotifications();
   const { user, updateProfile, changePassword, logout } = useAuth();
+  const { isInstallable, isInstalled, install } = useInstallPrompt();
+
+  const handleInstall = async () => {
+    const success = await install();
+    if (success) {
+      showToast({ type: "success", message: "App installed successfully!" });
+    }
+  };
   const [language, setLanguage] = useState("English");
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -310,6 +319,35 @@ export default function Settings() {
               >
                 Sign out everywhere
               </button>
+            </Card>
+
+            <Card className="space-y-3 xs:space-y-4 rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border border-[#2a2a2a] bg-[#0f0f0f] p-4 xs:p-5 sm:p-6">
+              <p className="text-base xs:text-lg font-semibold text-white">Install App</p>
+              <p className="text-xs xs:text-sm text-[#b9b9b9]">
+                {isInstalled
+                  ? "App is installed! You can access it from your home screen."
+                  : "Install Matters on your device for quick access and offline support."}
+              </p>
+              {isInstalled ? (
+                <div className="flex items-center gap-2 text-[#cfe0ad]">
+                  <svg className="h-4 w-4 xs:h-5 xs:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-xs xs:text-sm font-medium">Installed</span>
+                </div>
+              ) : isInstallable ? (
+                <button
+                  type="button"
+                  className="rounded-full bg-[#cfe0ad] px-4 xs:px-6 py-2 xs:py-3 text-xs xs:text-sm font-semibold text-black touch-target focus-ring"
+                  onClick={handleInstall}
+                >
+                  Install App
+                </button>
+              ) : (
+                <p className="text-xs text-[#8a8a8a]">
+                  Use Chrome, Edge, or Safari to install this app on your device.
+                </p>
+              )}
             </Card>
           </div>
         </div>
