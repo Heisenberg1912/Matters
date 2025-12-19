@@ -35,10 +35,15 @@ export default function PageHeader({
 
   // Sync local mode with project mode when project changes
   useEffect(() => {
-    if (currentProject?.mode) {
-      setMode(currentProject.mode);
+    if (currentProject?._id) {
+      // Default to 'construction' if project doesn't have a mode set
+      const projectMode = currentProject.mode || 'construction';
+      if (projectMode !== mode) {
+        setMode(projectMode);
+      }
     }
-  }, [currentProject?._id, currentProject?.mode, setMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject?._id]);
 
   // Handle mode change with backend sync
   const handleModeChange = useCallback(async (newMode: 'construction' | 'refurbish') => {
