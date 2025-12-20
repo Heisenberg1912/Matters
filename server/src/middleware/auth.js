@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken';
 import { clerkClient, verifyToken } from '@clerk/clerk-sdk-node';
 import User from '../models/User.js';
 
@@ -92,7 +91,7 @@ const resolveClerkUserFromToken = async (token) => {
   return findOrCreateClerkUser(payload.sub);
 };
 
-// Verify access token
+// Verify access token (Clerk only)
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -106,37 +105,8 @@ export const authenticate = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    let user = null;
-    let clerkError = null;
-
-    try {
-      user = await resolveClerkUserFromToken(token);
-    } catch (error) {
-      clerkError = error;
-    }
-
-    if (!user) {
-      try {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
-        );
-
-        user = await User.findById(decoded.userId);
-      } catch (jwtError) {
-        if (jwtError.name === 'TokenExpiredError') {
-          return res.status(401).json({
-            success: false,
-            error: 'Token expired.',
-            code: 'TOKEN_EXPIRED',
-          });
-        }
-        if (clerkError) {
-          console.warn('Clerk auth failed:', clerkError.message || clerkError);
-        }
-        throw jwtError;
-      }
-    }
+    // Verify Clerk token only
+    const user = await resolveClerkUserFromToken(token);
 
     if (!user) {
       return res.status(401).json({
@@ -159,12 +129,12 @@ export const authenticate = async (req, res, next) => {
     console.error('Auth middleware error:', error);
     return res.status(401).json({
       success: false,
-      error: 'Invalid token.',
+      error: 'Invalid or expired token.',
     });
   }
 };
 
-// Optional authentication (doesn't fail if no token)
+// Optional authentication (doesn't fail if no token) - Clerk only
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -176,15 +146,8 @@ export const optionalAuth = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     try {
-      let user = await resolveClerkUserFromToken(token);
-
-      if (!user) {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
-        );
-        user = await User.findById(decoded.userId);
-      }
+      // Verify Clerk token only
+      const user = await resolveClerkUserFromToken(token);
 
       if (user && user.isActive) {
         req.user = user;

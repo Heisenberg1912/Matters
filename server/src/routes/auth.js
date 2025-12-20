@@ -15,6 +15,24 @@ import { triggerProjectEvent } from '../utils/realtime.js';
 
 const router = express.Router();
 
+// ============================================================================
+// DEPRECATION NOTICE
+// ============================================================================
+// The following endpoints are DEPRECATED and maintained for backward compatibility only:
+// - POST /register - Use Clerk signup instead
+// - POST /login - Use Clerk signin instead
+// - POST /refresh - Not needed with Clerk tokens
+// - POST /forgot-password - Use Clerk password reset instead
+// - POST /reset-password - Use Clerk password reset instead
+// - POST /verify-email - Use Clerk email verification instead
+// - POST /change-password - Use Clerk password change instead
+//
+// ACTIVE endpoints (still needed for custom user data):
+// - GET /me - Fetch user profile from database
+// - PATCH /me - Update user profile in database
+// - POST /logout - Cleanup user session (Clerk handles actual logout)
+// ============================================================================
+
 const acceptProjectInvitesForUser = async (user) => {
   const inviteProjects = await Project.find({
     'invites.email': user.email,
