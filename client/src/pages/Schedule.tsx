@@ -30,16 +30,20 @@ export default function Schedule() {
   const { currentProject } = useProject();
 
   const phases = useScheduleStore((state) => state.phases);
-  const milestones = useScheduleStore((state) => state.getUpcomingMilestones());
+  const getUpcomingMilestones = useScheduleStore((state) => state.getUpcomingMilestones);
   const expandedPhase = useScheduleStore((state) => state.expandedPhase);
   const togglePhase = useScheduleStore((state) => state.togglePhase);
   const addTask = useScheduleStore((state) => state.addTask);
   const updateTaskStatus = useScheduleStore((state) => state.updateTaskStatus);
   const scheduleError = useScheduleStore((state) => state.error);
   const isSubmitting = useScheduleStore((state) => state.isSubmitting);
-  const tasksByStatus = useScheduleStore((state) => state.getTasksByStatus());
-  const overallProgress = useScheduleStore((state) => state.getOverallProgress());
+  const getTasksByStatus = useScheduleStore((state) => state.getTasksByStatus);
+  const getOverallProgress = useScheduleStore((state) => state.getOverallProgress);
   const fetchScheduleData = useScheduleStore((state) => state.fetchScheduleData);
+
+  const milestones = useMemo(() => getUpcomingMilestones(), [getUpcomingMilestones]);
+  const tasksByStatus = useMemo(() => getTasksByStatus(), [getTasksByStatus]);
+  const overallProgress = useMemo(() => getOverallProgress(), [getOverallProgress]);
 
   const teamMembers = useTeamStore((state) => state.members);
 

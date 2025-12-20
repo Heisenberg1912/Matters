@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import PageLayout from "@/components/page-layout";
 import { Card } from "@/components/ui/card";
@@ -27,9 +27,13 @@ export default function Analytics() {
   const categories = useBudgetStore((state) => state.categories);
   const spendingHistory = useBudgetStore((state) => state.spendingHistory);
 
-  const overallProgress = useScheduleStore((state) => state.getOverallProgress());
-  const tasksByStatus = useScheduleStore((state) => state.getTasksByStatus());
-  const upcomingMilestones = useScheduleStore((state) => state.getUpcomingMilestones());
+  const getOverallProgress = useScheduleStore((state) => state.getOverallProgress);
+  const getTasksByStatus = useScheduleStore((state) => state.getTasksByStatus);
+  const getUpcomingMilestones = useScheduleStore((state) => state.getUpcomingMilestones);
+
+  const overallProgress = useMemo(() => getOverallProgress(), [getOverallProgress]);
+  const tasksByStatus = useMemo(() => getTasksByStatus(), [getTasksByStatus]);
+  const upcomingMilestones = useMemo(() => getUpcomingMilestones(), [getUpcomingMilestones]);
 
   const activeMembersCount = useTeamStore((state) => state.getActiveMembersCount());
   const lowStockCount = useInventoryStore((state) => state.getLowStockCount());

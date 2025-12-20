@@ -37,7 +37,8 @@ export default function Contractor() {
   const inviteMember = useTeamStore((state) => state.inviteMember);
 
   const phases = useScheduleStore((state) => state.phases);
-  const tasksByStatus = useScheduleStore((state) => state.getTasksByStatus());
+  const getTasksByStatus = useScheduleStore((state) => state.getTasksByStatus);
+  const tasksByStatus = useMemo(() => getTasksByStatus(), [getTasksByStatus]);
 
   const [selectedContractorId, setSelectedContractorId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);

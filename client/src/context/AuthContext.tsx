@@ -303,6 +303,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error("Sign in is not ready yet.");
     }
 
+    // If user is still signed in, don't proceed - the calling component should handle logout first
+    if (isSignedIn) {
+      throw new Error("Please sign out before signing in with a different account.");
+    }
+
     setError(null);
     clearPendingOAuthRole();
 
@@ -319,7 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(message);
       throw err;
     }
-  }, [signIn, signInLoaded]);
+  }, [isSignedIn, signIn, signInLoaded]);
 
   // Sign up with OAuth provider
   const signUpWithOAuth = useCallback(async (provider: OAuthProvider, options?: { redirectTo?: string; role?: AuthRole }) => {
