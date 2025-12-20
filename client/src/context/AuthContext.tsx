@@ -33,10 +33,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const getClerkErrorMessage = (err: unknown, fallback: string) => {
+// Extract error message from Clerk errors or generic errors
+const getErrorMessage = (err: unknown, fallback: string): string => {
   if (err && typeof err === "object" && "errors" in err) {
     const errors = (err as { errors?: Array<{ message?: string; longMessage?: string }> }).errors;
-    if (errors && errors.length > 0) {
+    if (errors?.[0]) {
       return errors[0].longMessage || errors[0].message || fallback;
     }
   }
@@ -61,21 +62,22 @@ const getClerkMetadataRole = (clerkUser: {
   return normalizeRole(rawRole);
 };
 
-const readPendingOAuthRole = (): AuthRole | null => {
+// Pending OAuth role helpers
+const getPendingOAuthRole = (): AuthRole | null => {
   if (typeof window === "undefined") return null;
   return normalizeRole(localStorage.getItem(OAUTH_ROLE_STORAGE_KEY));
 };
 
-const setPendingOAuthRole = (role: AuthRole | null) => {
+const setPendingOAuthRole = (role: AuthRole | null): void => {
   if (typeof window === "undefined") return;
-  if (!role) {
+  if (role) {
+    localStorage.setItem(OAUTH_ROLE_STORAGE_KEY, role);
+  } else {
     localStorage.removeItem(OAUTH_ROLE_STORAGE_KEY);
-    return;
   }
-  localStorage.setItem(OAUTH_ROLE_STORAGE_KEY, role);
 };
 
-const clearPendingOAuthRole = () => {
+const clearPendingOAuthRole = (): void => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(OAUTH_ROLE_STORAGE_KEY);
 };
@@ -95,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user && isSignedIn;
 
+  // Accept pending project invite after login/register
   const acceptPendingInvite = useCallback(async () => {
     const token = localStorage.getItem("pending-invite-token");
     if (!token) return;
@@ -106,19 +109,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const ensureClerkRole = useCallback(async () => {
-    const pendingRole = readPendingOAuthRole();
-    if (!pendingRole) return true;
-    if (!clerkUser) return false;
+  // Ensure Clerk user has role metadata set
+  const ensureClerkRole = useCallback(async (): Promise<boolean> => {
+    const pendingRole = getPendingOAuthRole();
+    if (!pendingRole || !clerkUser) return true;
 
     const existingRole = getClerkMetadataRole(clerkUser);
     if (!existingRole) {
       try {
         await clerkUser.update({
-          unsafeMetadata: {
-            ...(clerkUser.unsafeMetadata || {}),
-            role: pendingRole,
-          },
+          unsafeMetadata: { ...clerkUser.unsafeMetadata, role: pendingRole },
         });
       } catch (err) {
         console.error("Failed to persist Clerk role metadata:", err);
@@ -130,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   }, [clerkUser]);
 
+  // Sync auth token with session storage
   const syncToken = useCallback(async () => {
     if (!clerkLoaded || !isSignedIn) {
       authSession.setToken(null);
@@ -139,15 +140,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authSession.setToken(token || null);
   }, [clerkLoaded, getToken, isSignedIn]);
 
+  // Fetch current user from backend
   const refreshUser = useCallback(async () => {
     if (!isSignedIn) return;
 
     await syncToken();
 
     const canProceed = await ensureClerkRole();
-    if (!canProceed) {
-      return;
-    }
+    if (!canProceed) return;
 
     const response = await authApi.getMe();
     if (response.success && response.data?.user) {
@@ -156,10 +156,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [ensureClerkRole, isSignedIn, syncToken]);
 
+  // Set up token provider
   useEffect(() => {
-    if (!clerkLoaded) {
-      return;
-    }
+    if (!clerkLoaded) return;
 
     authSession.setTokenProvider(async () => {
       if (!isSignedIn) return null;
@@ -167,17 +166,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [clerkLoaded, getToken, isSignedIn]);
 
+  // Sync authentication state
   useEffect(() => {
-    authSession.setAuthenticated(isAuthenticated);
+    authSession.setAuthenticated(!!isAuthenticated);
   }, [isAuthenticated]);
 
+  // Bootstrap auth on mount
   useEffect(() => {
     if (!clerkLoaded) return;
 
-    const pendingRole = readPendingOAuthRole();
-    if (isSignedIn && pendingRole && !clerkUserLoaded) {
-      return;
-    }
+    const pendingRole = getPendingOAuthRole();
+    if (isSignedIn && pendingRole && !clerkUserLoaded) return;
 
     const bootstrap = async () => {
       if (!isSignedIn) {
@@ -199,12 +198,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     bootstrap();
   }, [clerkLoaded, clerkUserLoaded, isSignedIn, refreshUser]);
 
+  // Refresh token periodically
   useEffect(() => {
-    if (!clerkLoaded || !isSignedIn) {
-      return () => undefined;
-    }
+    if (!clerkLoaded || !isSignedIn) return;
 
     let isActive = true;
+
     const refresh = async () => {
       try {
         const token = await getToken();
@@ -225,16 +224,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [clerkLoaded, getToken, isSignedIn]);
 
+  // Login with email and password
   const login = useCallback(async (email: string, password: string) => {
+    if (!signInLoaded || !signIn) {
+      throw new Error("Sign in is not ready yet.");
+    }
+
     setIsBusy(true);
     setError(null);
     clearPendingOAuthRole();
-    try {
-      if (!signInLoaded || !signIn) {
-        throw new Error("Sign in is not ready yet.");
-      }
 
+    try {
       const result = await signIn.create({ identifier: email, password });
+
       if (result.status !== "complete") {
         throw new Error("Sign in requires additional verification.");
       }
@@ -244,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await refreshUser();
       await acceptPendingInvite();
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Login failed");
+      const message = getErrorMessage(err, "Login failed");
       setError(message);
       throw err;
     } finally {
@@ -252,15 +254,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [acceptPendingInvite, refreshUser, setActiveSignIn, signIn, signInLoaded]);
 
+  // Register new user
   const register = useCallback(async (data: { email: string; password: string; name: string; phone?: string; role?: string }) => {
+    if (!signUpLoaded || !signUp) {
+      throw new Error("Sign up is not ready yet.");
+    }
+
     setIsBusy(true);
     setError(null);
     clearPendingOAuthRole();
-    try {
-      if (!signUpLoaded || !signUp) {
-        throw new Error("Sign up is not ready yet.");
-      }
 
+    try {
       const trimmedName = data.name.trim();
       const [firstName, ...rest] = trimmedName.split(" ");
       const lastName = rest.join(" ") || undefined;
@@ -285,7 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       return { status: "needs_verification" as const };
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Registration failed");
+      const message = getErrorMessage(err, "Registration failed");
       setError(message);
       throw err;
     } finally {
@@ -293,67 +297,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [acceptPendingInvite, refreshUser, setActiveSignUp, signUp, signUpLoaded]);
 
+  // Sign in with OAuth provider (Google, GitHub, etc.)
   const signInWithOAuth = useCallback(async (provider: OAuthProvider, redirectTo?: string) => {
-    setIsBusy(true);
+    if (!signInLoaded || !signIn) {
+      throw new Error("Sign in is not ready yet.");
+    }
+
     setError(null);
+    clearPendingOAuthRole();
+
     try {
-      if (!signInLoaded || !signIn) {
-        throw new Error("Sign in is not ready yet.");
-      }
-
-      clearPendingOAuthRole();
-
       const strategy = `oauth_${provider}` as const;
       await signIn.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: redirectTo || "/home",
       });
+      // Note: Page will redirect, so no need to handle success or reset loading
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Social sign-in failed");
+      const message = getErrorMessage(err, "Social sign-in failed");
       setError(message);
       throw err;
-    } finally {
-      setIsBusy(false);
     }
   }, [signIn, signInLoaded]);
 
+  // Sign up with OAuth provider
   const signUpWithOAuth = useCallback(async (provider: OAuthProvider, options?: { redirectTo?: string; role?: AuthRole }) => {
-    setIsBusy(true);
+    if (!signUpLoaded || !signUp) {
+      throw new Error("Sign up is not ready yet.");
+    }
+
     setError(null);
+    const role = normalizeRole(options?.role);
+    setPendingOAuthRole(role);
+
     try {
-      if (!signUpLoaded || !signUp) {
-        throw new Error("Sign up is not ready yet.");
-      }
-
-      const role = normalizeRole(options?.role);
-      setPendingOAuthRole(role);
-
       const strategy = `oauth_${provider}` as const;
       await signUp.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: options?.redirectTo || "/home",
       });
+      // Note: Page will redirect, so no need to handle success or reset loading
     } catch (err) {
       clearPendingOAuthRole();
-      const message = getClerkErrorMessage(err, "Social sign-up failed");
+      const message = getErrorMessage(err, "Social sign-up failed");
       setError(message);
       throw err;
-    } finally {
-      setIsBusy(false);
     }
   }, [signUp, signUpLoaded]);
 
+  // Verify email with code
   const verifyEmail = useCallback(async (code: string) => {
+    if (!signUpLoaded || !signUp) {
+      throw new Error("Email verification is not ready yet.");
+    }
+
     setIsBusy(true);
     setError(null);
-    try {
-      if (!signUpLoaded || !signUp) {
-        throw new Error("Email verification is not ready yet.");
-      }
 
+    try {
       const result = await signUp.attemptEmailAddressVerification({ code });
+
       if (result.status !== "complete") {
         throw new Error("Email verification failed.");
       }
@@ -363,7 +368,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await refreshUser();
       await acceptPendingInvite();
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Email verification failed");
+      const message = getErrorMessage(err, "Email verification failed");
       setError(message);
       throw err;
     } finally {
@@ -371,7 +376,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [acceptPendingInvite, refreshUser, setActiveSignUp, signUp, signUpLoaded]);
 
-  const logout = useCallback(async (_logoutAll = false) => {
+  // Logout
+  const logout = useCallback(async () => {
     setIsBusy(true);
     try {
       await signOut();
@@ -385,9 +391,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [signOut]);
 
+  // Update user profile
   const updateProfile = useCallback(async (data: Partial<User>) => {
     setIsBusy(true);
     setError(null);
+
     try {
       const response = await authApi.updateMe(data);
       if (response.success && response.data?.user) {
@@ -397,7 +405,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(response.error || "Profile update failed");
       }
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Profile update failed");
+      const message = getErrorMessage(err, "Profile update failed");
       setError(message);
       throw err;
     } finally {
@@ -405,26 +413,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Request password reset
   const forgotPassword = useCallback(async (email: string) => {
+    if (!signInLoaded || !signIn) {
+      throw new Error("Password reset is not ready yet.");
+    }
+
     setIsBusy(true);
     setError(null);
-    try {
-      if (!signInLoaded || !signIn) {
-        throw new Error("Password reset is not ready yet.");
-      }
 
+    try {
       const result = await signIn.create({ identifier: email });
-      const canReset = result.supportedFirstFactors?.some(
+      const resetFactor = result.supportedFirstFactors?.find(
         (factor) => factor.strategy === "reset_password_email_code"
       );
 
-      if (!canReset) {
+      if (!resetFactor || !("emailAddressId" in resetFactor)) {
         throw new Error("Password reset via email code is unavailable.");
       }
 
-      await signIn.prepareFirstFactor({ strategy: "reset_password_email_code" });
+      await signIn.prepareFirstFactor({
+        strategy: "reset_password_email_code",
+        emailAddressId: resetFactor.emailAddressId as string,
+      });
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Failed to send reset email");
+      const message = getErrorMessage(err, "Failed to send reset email");
       setError(message);
       throw err;
     } finally {
@@ -432,14 +445,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [signIn, signInLoaded]);
 
+  // Reset password with code
   const resetPassword = useCallback(async (code: string, password: string) => {
+    if (!signInLoaded || !signIn) {
+      throw new Error("Password reset is not initialized. Please request a reset code again.");
+    }
+
     setIsBusy(true);
     setError(null);
-    try {
-      if (!signInLoaded || !signIn) {
-        throw new Error("Password reset is not initialized. Please request a reset code again.");
-      }
 
+    try {
       const result = await signIn.attemptFirstFactor({
         strategy: "reset_password_email_code",
         code,
@@ -454,7 +469,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetPusherClient();
       await refreshUser();
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Password reset failed");
+      const message = getErrorMessage(err, "Password reset failed");
       setError(message);
       throw err;
     } finally {
@@ -462,16 +477,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [refreshUser, setActiveSignIn, signIn, signInLoaded]);
 
+  // Change password (when logged in)
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!clerkUser) {
+      throw new Error("User is not ready.");
+    }
+
     setIsBusy(true);
     setError(null);
+
     try {
-      if (!clerkUser) {
-        throw new Error("User is not ready.");
-      }
       await clerkUser.updatePassword({ currentPassword, newPassword });
     } catch (err) {
-      const message = getClerkErrorMessage(err, "Password change failed");
+      const message = getErrorMessage(err, "Password change failed");
       setError(message);
       throw err;
     } finally {
@@ -483,17 +501,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   }, []);
 
+  // Subscribe to real-time events for authenticated user
   useEffect(() => {
-    if (!isAuthenticated || !user?._id) {
-      return () => undefined;
-    }
+    if (!isAuthenticated || !user?._id) return;
 
     const channelName = getUserChannelName(user._id);
     const channel = subscribeToChannel(channelName);
-
-    if (!channel) {
-      return () => undefined;
-    }
+    if (!channel) return;
 
     const handleProjectCreated = (payload: { project?: { name?: string } }) => {
       showToast({
@@ -523,7 +537,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: AuthContextType = {
     user,
-    isAuthenticated,
+    isAuthenticated: !!isAuthenticated,
     isLoading: isInitializing || isBusy,
     error,
     login,
