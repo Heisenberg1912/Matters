@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Report, ReportType } from './types';
 import { seedReports } from './mockData';
 import { reportsApi, budgetApi, inventoryApi, stagesApi, authStorage } from '../lib/api';
+import { exportToPDF, exportToExcel } from '../lib/exportService';
 
 interface ReportStore {
   reports: Report[];
@@ -172,41 +173,18 @@ export const useReportStore = create<ReportStore>()(
         const report = state.reports.find((r) => r.id === id);
         if (!report) return;
 
-        // Generate export file
-        const filename = `${report.name.replace(/\s+/g, '_')}_${report.generatedDate}.${format}`;
-
-        if (format === 'excel') {
-          // Create CSV content
-          let csvContent = 'Report: ' + report.name + '\n';
-          csvContent += 'Generated: ' + report.generatedDate + '\n\n';
-          csvContent += 'Data:\n';
-          csvContent += JSON.stringify(report.data, null, 2);
-
-          const blob = new Blob([csvContent], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename.replace('.excel', '.csv');
-          a.click();
-          URL.revokeObjectURL(url);
-        } else {
-          // For PDF, create a simple text representation
-          const content = `
-${report.name}
-Generated: ${report.generatedDate}
-
-${JSON.stringify(report.data, null, 2)}
-          `;
-          const blob = new Blob([content], { type: 'text/plain' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename.replace('.pdf', '.txt');
-          a.click();
-          URL.revokeObjectURL(url);
+        try {
+          if (format === 'pdf') {
+            // Use the professional PDF export service
+            exportToPDF(report);
+          } else if (format === 'excel') {
+            // Use the professional Excel export service
+            exportToExcel(report);
+          }
+          console.log(`Exported report "${report.name}" as ${format.toUpperCase()}`);
+        } catch (error) {
+          console.error(`Failed to export report as ${format}:`, error);
         }
-
-        console.log(`Exported report "${report.name}" as ${format.toUpperCase()}`);
       },
 
       getRecentReports: (count = 5) => {

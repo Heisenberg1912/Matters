@@ -240,6 +240,116 @@ export const isAdmin = (req, res, next) => {
   next();
 };
 
+// Check if user is superadmin only
+export const isSuperAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required.',
+    });
+  }
+
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Superadmin access required.',
+    });
+  }
+
+  next();
+};
+
+// Check plan limits before allowing resource creation
+export const checkPlanLimits = (limitType) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required.',
+        });
+      }
+
+      // Import models dynamically to avoid circular dependencies
+      const { default: Plan } = await import('../models/Plan.js');
+      const { default: Project } = await import('../models/Project.js');
+
+      const plan = await Plan.getPlanById(req.user.subscription?.plan || 'free');
+      if (!plan) {
+        return res.status(500).json({
+          success: false,
+          error: 'Could not determine user plan.',
+        });
+      }
+
+      const limits = plan.limits || {};
+
+      switch (limitType) {
+        case 'projects': {
+          if (limits.projects === -1) return next(); // Unlimited
+          const projectCount = await Project.countDocuments({ owner: req.userId });
+          if (projectCount >= limits.projects) {
+            return res.status(403).json({
+              success: false,
+              error: `You have reached the maximum number of projects (${limits.projects}) for your ${plan.name} plan. Please upgrade to create more projects.`,
+              code: 'PLAN_LIMIT_EXCEEDED',
+              limitType: 'projects',
+              current: projectCount,
+              limit: limits.projects,
+            });
+          }
+          break;
+        }
+
+        case 'teamMembers': {
+          if (limits.teamMembers === -1) return next(); // Unlimited
+          const projectId = req.params.id || req.body.projectId;
+          if (projectId) {
+            const project = await Project.findById(projectId);
+            if (project && project.team.length >= limits.teamMembers) {
+              return res.status(403).json({
+                success: false,
+                error: `You have reached the maximum number of team members (${limits.teamMembers}) per project for your ${plan.name} plan. Please upgrade to add more team members.`,
+                code: 'PLAN_LIMIT_EXCEEDED',
+                limitType: 'teamMembers',
+                current: project.team.length,
+                limit: limits.teamMembers,
+              });
+            }
+          }
+          break;
+        }
+
+        case 'storage': {
+          if (limits.storage === -1) return next(); // Unlimited
+          const storageUsed = req.user.usage?.storageUsed || 0;
+          const storageLimitBytes = limits.storage * 1024 * 1024 * 1024; // Convert GB to bytes
+          const fileSize = req.body.fileSize || 0;
+          if (storageUsed + fileSize > storageLimitBytes) {
+            return res.status(403).json({
+              success: false,
+              error: `You have reached the storage limit (${limits.storage} GB) for your ${plan.name} plan. Please upgrade for more storage.`,
+              code: 'PLAN_LIMIT_EXCEEDED',
+              limitType: 'storage',
+              current: storageUsed,
+              limit: storageLimitBytes,
+            });
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      next();
+    } catch (error) {
+      console.error('Plan limits check error:', error);
+      next(); // Allow through on error to not block operations
+    }
+  };
+};
+
 // Check if user owns the resource or is admin
 export const isOwnerOrAdmin = (ownerField = 'owner') => {
   return (req, res, next) => {

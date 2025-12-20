@@ -6,12 +6,13 @@ import PhoneShell from '@/components/phone-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { guestSession } from '@/lib/guest-session';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2, Loader2, LogOut } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, signInWithOAuth, logout, isAuthenticated, user, isLoading, error, clearError } = useAuth();
+  const { login, signInWithOAuth, logout, isAuthenticated, isClerkSignedIn, user, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,10 +50,11 @@ export default function Login() {
 
     try {
       // Sign out first if already authenticated
-      if (isAuthenticated) {
+      if (isClerkSignedIn) {
         await logout();
       }
       await login(email.trim(), password);
+      guestSession.disable();
       navigate(redirectTo);
     } catch {
       // Error is set by AuthContext
@@ -65,7 +67,7 @@ export default function Login() {
 
     // If already authenticated, sign out first and reload the page
     // This ensures Clerk is fully reset before attempting OAuth
-    if (isAuthenticated) {
+    if (isClerkSignedIn) {
       setIsLoggingOut(true);
       try {
         await logout();
@@ -85,6 +87,23 @@ export default function Login() {
       setIsOAuthLoading(false);
       // Error is set by AuthContext
     }
+  };
+
+  const handleGuestContinue = async () => {
+    setLocalError('');
+    clearError();
+
+    if (isClerkSignedIn) {
+      setIsLoggingOut(true);
+      try {
+        await logout();
+      } finally {
+        setIsLoggingOut(false);
+      }
+    }
+
+    guestSession.enable();
+    navigate('/home');
   };
 
   return (
@@ -271,7 +290,7 @@ export default function Login() {
               type="button"
               variant="ghost"
               className="w-full h-11 rounded-xl mt-3 text-muted hover:text-foreground hover:bg-card/50"
-              onClick={() => navigate('/home')}
+              onClick={handleGuestContinue}
               disabled={isBusy}
             >
               Continue as Guest (Demo Mode)

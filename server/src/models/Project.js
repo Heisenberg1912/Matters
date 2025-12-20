@@ -100,6 +100,20 @@ const projectSchema = new mongoose.Schema(
       allowComments: { type: Boolean, default: true },
       notifications: { type: Boolean, default: true },
     },
+    // Public access for client portal
+    publicAccess: {
+      enabled: { type: Boolean, default: false },
+      token: { type: String, unique: true, sparse: true },
+      expiresAt: Date,
+      allowedSections: [{
+        type: String,
+        enum: ['overview', 'progress', 'photos', 'timeline', 'budget_summary'],
+      }],
+      password: String, // Optional password protection (hashed)
+      viewCount: { type: Number, default: 0 },
+      createdAt: Date,
+      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    },
     progress: {
       percentage: { type: Number, default: 0, min: 0, max: 100 },
       lastUpdated: Date,

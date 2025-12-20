@@ -25,6 +25,9 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.0.5",
     "fuse.js": "^7.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.460.0",
     "matters": "file:..",
     "pusher-js": "^8.4.0",
@@ -38,6 +41,7 @@
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1",
     "zustand": "^5.0.2"
   },

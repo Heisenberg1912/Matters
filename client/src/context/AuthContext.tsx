@@ -4,6 +4,7 @@ import { authApi, projectsApi, type User } from "../lib/api";
 import { authSession } from "../lib/auth-session";
 import { getUserChannelName, resetPusherClient, subscribeToChannel, unsubscribeFromChannel } from "@/lib/realtime";
 import { useNotifications } from "@/hooks/use-notifications";
+import { guestSession } from "@/lib/guest-session";
 
 type AuthRole = "user" | "contractor";
 type OAuthProvider = "google" | "github" | "apple";
@@ -13,6 +14,7 @@ const OAUTH_ROLE_STORAGE_KEY = "pending-oauth-role";
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isClerkSignedIn: boolean;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
@@ -45,6 +47,16 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
     return err.message;
   }
   return fallback;
+};
+
+const getAuthErrorStatus = (err: unknown): number | null => {
+  if (err && typeof err === "object" && "response" in err) {
+    const response = (err as { response?: { status?: number } }).response;
+    if (typeof response?.status === "number") {
+      return response.status;
+    }
+  }
+  return null;
 };
 
 const normalizeRole = (value: unknown): AuthRole | null => {
@@ -96,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = !!user && isSignedIn;
+  const isClerkSignedIn = isSignedIn;
 
   // Accept pending project invite after login/register
   const acceptPendingInvite = useCallback(async () => {
@@ -149,12 +162,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const canProceed = await ensureClerkRole();
     if (!canProceed) return;
 
-    const response = await authApi.getMe();
-    if (response.success && response.data?.user) {
-      setUser(response.data.user);
-      authSession.setUser(response.data.user);
+    try {
+      const response = await authApi.getMe();
+      if (response.success && response.data?.user) {
+        setUser(response.data.user);
+        authSession.setUser(response.data.user);
+      }
+    } catch (err) {
+      const status = getAuthErrorStatus(err);
+      if (status === 401 || status === 403) {
+        await signOut();
+        authSession.clear();
+        setUser(null);
+      }
+      throw err;
     }
-  }, [ensureClerkRole, isSignedIn, syncToken]);
+  }, [ensureClerkRole, isSignedIn, signOut, syncToken]);
 
   // Set up token provider
   useEffect(() => {
@@ -169,6 +192,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sync authentication state
   useEffect(() => {
     authSession.setAuthenticated(!!isAuthenticated);
+    if (isAuthenticated) {
+      guestSession.disable();
+    }
   }, [isAuthenticated]);
 
   // Bootstrap auth on mount
@@ -299,19 +325,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign in with OAuth provider (Google, GitHub, etc.)
   const signInWithOAuth = useCallback(async (provider: OAuthProvider, redirectTo?: string) => {
-    if (!signInLoaded || !signIn) {
-      throw new Error("Sign in is not ready yet.");
-    }
-
-    // If user is still signed in, don't proceed - the calling component should handle logout first
-    if (isSignedIn) {
-      throw new Error("Please sign out before signing in with a different account.");
-    }
-
     setError(null);
     clearPendingOAuthRole();
 
     try {
+      if (!signInLoaded || !signIn) {
+        throw new Error("Sign in is not ready yet. Please wait a moment and try again.");
+      }
+
+      // If user is still signed in, don't proceed - the calling component should handle logout first
+      if (isSignedIn) {
+        throw new Error("Please sign out before signing in with a different account.");
+      }
+
       const strategy = `oauth_${provider}` as const;
       await signIn.authenticateWithRedirect({
         strategy,
@@ -328,15 +354,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign up with OAuth provider
   const signUpWithOAuth = useCallback(async (provider: OAuthProvider, options?: { redirectTo?: string; role?: AuthRole }) => {
-    if (!signUpLoaded || !signUp) {
-      throw new Error("Sign up is not ready yet.");
-    }
-
     setError(null);
     const role = normalizeRole(options?.role);
     setPendingOAuthRole(role);
 
     try {
+      if (!signUpLoaded || !signUp) {
+        throw new Error("Sign up is not ready yet. Please wait a moment and try again.");
+      }
+
       const strategy = `oauth_${provider}` as const;
       await signUp.authenticateWithRedirect({
         strategy,
@@ -543,6 +569,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: AuthContextType = {
     user,
     isAuthenticated: !!isAuthenticated,
+    isClerkSignedIn,
     isLoading: isInitializing || isBusy,
     error,
     login,

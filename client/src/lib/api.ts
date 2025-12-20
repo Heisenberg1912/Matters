@@ -794,6 +794,277 @@ export const contractorsApi = {
   },
 };
 
+// ===== SUBSCRIPTIONS API =====
+export interface Plan {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  yearlyPrice: number;
+  currency: string;
+  limits: {
+    projects: number;
+    storage: number;
+    teamMembers: number;
+    contractors: number;
+  };
+  features: string[];
+  isPopular?: boolean;
+}
+
+export interface SubscriptionData {
+  subscription: {
+    plan: string;
+    status: string;
+    startDate?: string;
+    endDate?: string;
+  };
+  currentPlan: Plan | null;
+  usage: {
+    projects: { used: number; limit: number; unlimited: boolean };
+    storage: { used: number; usedFormatted: string; limit: number; limitFormatted: string; unlimited: boolean };
+    teamMembers: { used: number; limit: number; unlimited: boolean };
+    contractors: { used: number; limit: number; unlimited: boolean };
+  };
+}
+
+export const subscriptionsApi = {
+  getPlans: async (currency?: string) => {
+    const response = await api.get<ApiResponse<Plan[]>>('/subscriptions/plans', {
+      params: { currency },
+    });
+    return response.data;
+  },
+
+  getCurrent: async (currency?: string) => {
+    const response = await api.get<ApiResponse<SubscriptionData>>('/subscriptions/current', {
+      params: { currency },
+    });
+    return response.data;
+  },
+
+  getUsage: async () => {
+    const response = await api.get<ApiResponse<{
+      plan: { id: string; name: string; limits: Plan['limits'] };
+      projects: { total: number; byStatus: Record<string, number> };
+      storage: { total: number; totalFormatted: string };
+      team: { total: number; byProject: Array<{ projectId: string; projectName: string; memberCount: number }> };
+    }>>('/subscriptions/usage');
+    return response.data;
+  },
+};
+
+// ===== ADMIN API =====
+export interface AdminStats {
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+    byRole: Record<string, number>;
+  };
+  projects: {
+    total: number;
+    active: number;
+  };
+  subscriptions: {
+    byPlan: Record<string, number>;
+    totalPaid: number;
+  };
+  recentUsers: Array<{
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+    subscription?: { plan: string };
+    createdAt: string;
+  }>;
+}
+
+export const adminApi = {
+  getStats: async () => {
+    const response = await api.get<ApiResponse<AdminStats>>('/admin/stats');
+    return response.data;
+  },
+
+  getUsers: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    plan?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => {
+    const response = await api.get<ApiResponse<{
+      users: User[];
+      pagination: PaginatedResponse<User>['pagination'];
+    }>>('/admin/users', { params });
+    return response.data;
+  },
+
+  getUser: async (id: string) => {
+    const response = await api.get<ApiResponse<{
+      user: User;
+      projects: Project[];
+      plan: Plan | null;
+    }>>(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  updateUser: async (id: string, data: {
+    role?: string;
+    isActive?: boolean;
+    subscription?: {
+      plan?: string;
+      status?: string;
+      endDate?: string;
+      notes?: string;
+    };
+  }) => {
+    const response = await api.patch<ApiResponse<User>>(`/admin/users/${id}`, data);
+    return response.data;
+  },
+
+  deactivateUser: async (id: string) => {
+    const response = await api.delete<ApiResponse<User>>(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  getProjects: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+  }) => {
+    const response = await api.get<ApiResponse<{
+      projects: Project[];
+      pagination: PaginatedResponse<Project>['pagination'];
+    }>>('/admin/projects', { params });
+    return response.data;
+  },
+
+  getSubscriptionAnalytics: async () => {
+    const response = await api.get<ApiResponse<{
+      distribution: {
+        byPlan: Record<string, number>;
+        byStatus: Record<string, number>;
+      };
+      revenue: {
+        mrrINR: number;
+        mrrUSD: number;
+        arrINR: number;
+        arrUSD: number;
+      };
+      recentUpgrades: Array<{
+        _id: string;
+        name: string;
+        email: string;
+        subscription: { plan: string; startDate: string };
+      }>;
+    }>>('/admin/subscriptions');
+    return response.data;
+  },
+};
+
+// ===== PUBLIC/PORTAL API =====
+export interface ShareSettings {
+  enabled: boolean;
+  hasShareLink: boolean;
+  token?: string;
+  shareUrl?: string;
+  expiresAt?: string;
+  allowedSections?: string[];
+  isPasswordProtected?: boolean;
+  viewCount?: number;
+}
+
+export interface PublicProjectData {
+  name: string;
+  isPasswordProtected: boolean;
+  allowedSections: string[];
+  overview?: {
+    description?: string;
+    status: string;
+    type: string;
+    mode: string;
+    location?: string;
+    owner?: string;
+    createdAt: string;
+  };
+  progress?: {
+    percentage: number;
+    completedStages: number;
+    totalStages: number;
+    stages?: Array<{ name: string; type: string; status: string; progress: number }>;
+  };
+  timeline?: {
+    startDate?: string;
+    expectedEndDate?: string;
+    daysRemaining?: number;
+  };
+  photos?: Array<{
+    _id: string;
+    name: string;
+    url?: string;
+    createdAt: string;
+  }>;
+  budgetSummary?: {
+    estimated: number;
+    spent: number;
+    currency: string;
+    utilization: number;
+  };
+}
+
+export const publicApi = {
+  getShareSettings: async (projectId: string) => {
+    const response = await api.get<ApiResponse<ShareSettings>>(`/projects/${projectId}/share`);
+    return response.data;
+  },
+
+  createShareLink: async (projectId: string, data?: {
+    expiresIn?: number;
+    allowedSections?: string[];
+    password?: string;
+  }) => {
+    const response = await api.post<ApiResponse<{
+      token: string;
+      shareUrl: string;
+      expiresAt?: string;
+      allowedSections: string[];
+      isPasswordProtected: boolean;
+    }>>(`/projects/${projectId}/share`, data);
+    return response.data;
+  },
+
+  updateShareSettings: async (projectId: string, data: {
+    enabled?: boolean;
+    expiresIn?: number;
+    allowedSections?: string[];
+    password?: string;
+    removePassword?: boolean;
+  }) => {
+    const response = await api.patch<ApiResponse<ShareSettings>>(`/projects/${projectId}/share`, data);
+    return response.data;
+  },
+
+  revokeShareLink: async (projectId: string) => {
+    const response = await api.delete<ApiResponse<{ message: string }>>(`/projects/${projectId}/share`);
+    return response.data;
+  },
+
+  verifyPortalPassword: async (token: string, password: string) => {
+    const response = await api.post<ApiResponse<{ verified: boolean }>>(`/portal/${token}/verify`, { password });
+    return response.data;
+  },
+
+  getPublicProject: async (token: string) => {
+    const response = await api.get<ApiResponse<PublicProjectData>>(`/portal/${token}`);
+    return response.data;
+  },
+};
+
 // Health check
 export const checkHealth = async () => {
   try {
@@ -822,6 +1093,9 @@ export default {
   reports: reportsApi,
   contractors: contractorsApi,
   support: supportApi,
+  subscriptions: subscriptionsApi,
+  admin: adminApi,
+  public: publicApi,
   checkHealth,
   authStorage,
 };

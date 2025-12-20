@@ -23,6 +23,9 @@ import realtimeRoutes from './routes/realtime.js';
 import paymentsRoutes from './routes/payments.js';
 import contractorRoutes from './routes/contractors.js';
 import supportRoutes from './routes/support.js';
+import subscriptionsRoutes from './routes/subscriptions.js';
+import adminRoutes from './routes/admin.js';
+import publicRoutes from './routes/public.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -137,6 +140,9 @@ app.use(`${API_PREFIX}/realtime`, realtimeRoutes);
 app.use(`${API_PREFIX}/payments`, paymentsRoutes);
 app.use(`${API_PREFIX}/contractors`, contractorRoutes);
 app.use(`${API_PREFIX}/support`, supportRoutes);
+app.use(`${API_PREFIX}/subscriptions`, subscriptionsRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}`, publicRoutes); // Public routes (includes /portal and /projects/:id/share)
 
 // Root endpoint
 app.get('/', (req, res) => {

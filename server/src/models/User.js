@@ -85,6 +85,35 @@ const userSchema = new mongoose.Schema(
       average: { type: Number, default: 0, min: 0, max: 5 },
       count: { type: Number, default: 0 },
     },
+    // Subscription fields
+    subscription: {
+      plan: {
+        type: String,
+        enum: ['free', 'pro', 'enterprise'],
+        default: 'free',
+      },
+      status: {
+        type: String,
+        enum: ['active', 'canceled', 'expired'],
+        default: 'active',
+      },
+      startDate: {
+        type: Date,
+        default: Date.now,
+      },
+      endDate: Date,
+      assignedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      notes: String,
+    },
+    // Usage tracking
+    usage: {
+      projectCount: { type: Number, default: 0 },
+      storageUsed: { type: Number, default: 0 }, // bytes
+      teamMembersCount: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,
