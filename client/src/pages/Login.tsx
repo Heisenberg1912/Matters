@@ -6,21 +6,31 @@ import PhoneShell from '@/components/phone-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2, Github, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Building2, Github, Loader2, LogOut } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, signInWithOAuth, isLoading, error, clearError } = useAuth();
+  const { login, signInWithOAuth, logout, isAuthenticated, user, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectTo = (location.state as { from?: string } | undefined)?.from || '/home';
 
   const displayError = localError || error;
-  const isBusy = isLoading || isOAuthLoading;
+  const isBusy = isLoading || isOAuthLoading || isLoggingOut;
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +48,10 @@ export default function Login() {
     }
 
     try {
+      // Sign out first if already authenticated
+      if (isAuthenticated) {
+        await logout();
+      }
       await login(email.trim(), password);
       navigate(redirectTo);
     } catch {
@@ -51,6 +65,10 @@ export default function Login() {
     setIsOAuthLoading(true);
 
     try {
+      // Sign out first if already authenticated
+      if (isAuthenticated) {
+        await logout();
+      }
       await signInWithOAuth(provider, redirectTo);
       // OAuth redirects away, so we don't need to handle success here
     } catch {
@@ -71,12 +89,47 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pill to-pill/70 rounded-2xl mb-5 shadow-lg shadow-pill/20">
             <Building2 className="w-8 h-8 text-background" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
-          <p className="text-muted mt-1">Sign in to manage your projects</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {isAuthenticated ? 'Switch Account' : 'Welcome Back'}
+          </h1>
+          <p className="text-muted mt-1">
+            {isAuthenticated ? 'Sign in with a different account' : 'Sign in to manage your projects'}
+          </p>
         </div>
 
         {/* Form */}
         <div className="flex-1 px-6">
+          {/* Already signed in banner */}
+          {isAuthenticated && (
+            <div className="mb-4 p-4 rounded-xl bg-card border border-border">
+              <p className="text-sm text-muted mb-3">
+                Signed in as <span className="text-foreground font-medium">{user?.email}</span>
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/home')}
+                  className="flex-1"
+                >
+                  Go to Home
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  disabled={isBusy}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Error Display */}
             {displayError && (
@@ -193,23 +246,25 @@ export default function Login() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Sign In
+                  {isAuthenticated ? 'Switch Account' : 'Sign In'}
                   <ArrowRight className="w-5 h-5" />
                 </span>
               )}
             </Button>
           </form>
 
-          {/* Demo Mode */}
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full h-11 rounded-xl mt-3 text-muted hover:text-foreground hover:bg-card/50"
-            onClick={() => navigate('/home')}
-            disabled={isBusy}
-          >
-            Continue as Guest (Demo Mode)
-          </Button>
+          {/* Demo Mode - only show when not authenticated */}
+          {!isAuthenticated && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-11 rounded-xl mt-3 text-muted hover:text-foreground hover:bg-card/50"
+              onClick={() => navigate('/home')}
+              disabled={isBusy}
+            >
+              Continue as Guest (Demo Mode)
+            </Button>
+          )}
         </div>
 
         {/* Footer */}
