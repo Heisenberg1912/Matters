@@ -3,29 +3,19 @@ import { useNavigate } from "react-router-dom";
 import PhoneShell from "@/components/phone-shell";
 import splashIcon from "../assets/branding/splash-icon.png";
 import { useAuth } from "@/context/AuthContext";
-import { guestSession } from "@/lib/guest-session";
 
 export default function Splash() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
-  const isGuest = guestSession.isEnabled();
+  const { isLoading } = useAuth();
 
   useEffect(() => {
-    // Guest mode doesn't require waiting for Clerk to load
-    if (isGuest) {
-      const t = setTimeout(() => navigate("/home"), 800);
-      return () => clearTimeout(t);
-    }
-
-    // For non-guest users, wait for auth to finish loading
     if (isLoading) {
       return () => undefined;
     }
 
-    const nextRoute = isAuthenticated ? "/home" : "/login";
-    const t = setTimeout(() => navigate(nextRoute), 800);
+    const t = setTimeout(() => navigate("/home"), 800);
     return () => clearTimeout(t);
-  }, [isAuthenticated, isGuest, isLoading, navigate]);
+  }, [isLoading, navigate]);
 
   return (
     <PhoneShell className="items-center justify-center bg-[radial-gradient(circle_at_top,#0f160f_0%,#050505_55%,#020202_100%)]">

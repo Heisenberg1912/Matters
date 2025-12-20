@@ -13,7 +13,7 @@ const privacySections = [
     title: "Information We Collect",
     icon: <Database size={32} className="text-[#cfe0ad]" />,
     content: [
-      "Personal Information: Name, email address, phone number, and profile photo when you create an account.",
+      "Personal Information: Name, email address, phone number, and profile photo when you use the app.",
       "Project Data: Construction project details, budgets, schedules, inventory, contractor information, and uploaded documents.",
       "Usage Data: How you interact with the app, including pages visited, features used, and time spent on the platform.",
       "Device Information: Device type, operating system, browser type, and IP address.",
@@ -43,7 +43,7 @@ const privacySections = [
       "We use SSL/TLS encryption for all data transmission between your device and our servers.",
       "Project data is backed up regularly to prevent data loss.",
       "Access to your data is restricted to authorized personnel only.",
-      "We implement multi-factor authentication and regular security audits.",
+      "We implement access controls and regular security audits.",
       "Sensitive information like payment details are handled by PCI-compliant payment processors."
     ]
   },
@@ -79,7 +79,7 @@ const privacySections = [
     title: "Cookies & Tracking",
     icon: <Eye size={32} className="text-[#cfe0ad]" />,
     content: [
-      "We use cookies to remember your preferences and keep you logged in.",
+      "We use cookies to remember your preferences and keep your workspace consistent.",
       "Analytics cookies help us understand how users interact with the app.",
       "You can disable cookies in your browser settings, but this may affect functionality.",
       "We use local storage to cache data for offline access.",
@@ -204,8 +204,8 @@ export default function PrivacyPolicy() {
                 <h3 className="text-4xl font-bold tracking-tight text-white">Data Retention</h3>
                 <Card className="mt-8 border border-[#242424] bg-[#101010] p-10">
                   <p className="text-xl leading-relaxed text-[#bdbdbd]">
-                    We retain your personal information for as long as your account is active or as needed to provide you services.
-                    After account deletion, we may retain certain information for legal compliance, dispute resolution, and
+                    We retain your personal information for as long as your workspace is active or as needed to provide you services.
+                    After workspace deletion, we may retain certain information for legal compliance, dispute resolution, and
                     enforcement of our agreements.
                   </p>
                   <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">

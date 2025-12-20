@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import PhoneShell from "@/components/phone-shell";
-import { Button } from "@/components/ui/button";
 import { projectsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { MailCheck, MailX } from "lucide-react";
@@ -41,11 +40,6 @@ export default function AcceptInvite() {
     acceptInvite();
   }, [isAuthenticated, isLoading, token]);
 
-  const handleSaveToken = () => {
-    if (!token) return;
-    localStorage.setItem("pending-invite-token", token);
-  };
-
   const icon = status === "success" ? <MailCheck className="w-8 h-8 text-white" /> : <MailX className="w-8 h-8 text-white" />;
 
   return (
@@ -68,33 +62,6 @@ export default function AcceptInvite() {
 
           {!token && (
             <div className="mt-4 text-sm text-red-600">Please check the invitation link and try again.</div>
-          )}
-
-          {!isAuthenticated && token && (
-            <div className="mt-6 space-y-3">
-              <p className="text-sm text-gray-600">
-                Please sign in or create an account to accept this invitation.
-              </p>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  className="w-full bg-blue-600 text-white"
-                  onClick={handleSaveToken}
-                  asChild
-                >
-                  <Link to="/login">Sign In to Accept</Link>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleSaveToken}
-                  asChild
-                >
-                  <Link to="/register">Create Account</Link>
-                </Button>
-              </div>
-            </div>
           )}
 
           {isAuthenticated && (

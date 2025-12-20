@@ -288,9 +288,6 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       authStorage.clear();
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
     }
 
     return Promise.reject(error);
@@ -300,7 +297,7 @@ api.interceptors.response.use(
 // ===== AUTH API =====
 export const authApi = {
   getMe: async () => {
-    const response = await api.get<ApiResponse<{ user: User }>>('/auth/me');
+    const response = await api.get<ApiResponse<{ user: User }>>('/session');
     if (response.data.success && response.data.data) {
       authStorage.setUser(response.data.data.user);
     }
@@ -308,7 +305,7 @@ export const authApi = {
   },
 
   updateMe: async (data: Partial<User>) => {
-    const response = await api.patch<ApiResponse<{ user: User }>>('/auth/me', data);
+    const response = await api.patch<ApiResponse<{ user: User }>>('/session', data);
     if (response.data.success && response.data.data) {
       authStorage.setUser(response.data.data.user);
     }

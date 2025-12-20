@@ -1,15 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useAuth as useClerkAuth, useClerk, useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
-import { authApi, projectsApi, type User } from "../lib/api";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { authApi, type User } from "../lib/api";
 import { authSession } from "../lib/auth-session";
-import { getUserChannelName, resetPusherClient, subscribeToChannel, unsubscribeFromChannel } from "@/lib/realtime";
-import { useNotifications } from "@/hooks/use-notifications";
-import { guestSession } from "@/lib/guest-session";
 
 type AuthRole = "user" | "contractor";
 type OAuthProvider = "google" | "github" | "apple";
-
-const OAUTH_ROLE_STORAGE_KEY = "pending-oauth-role";
 
 interface AuthContextType {
   user: User | null;
@@ -35,577 +29,154 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Extract error message from Clerk errors or generic errors
-const getErrorMessage = (err: unknown, fallback: string): string => {
-  if (err && typeof err === "object" && "errors" in err) {
-    const errors = (err as { errors?: Array<{ message?: string; longMessage?: string }> }).errors;
-    if (errors?.[0]) {
-      return errors[0].longMessage || errors[0].message || fallback;
-    }
-  }
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return fallback;
+const LOCAL_PROFILE_KEY = "matters-guest-profile";
+
+const createFallbackUser = (overrides?: Partial<User>): User => {
+  const now = new Date().toISOString();
+  return {
+    _id: "guest",
+    email: "guest@matters.local",
+    name: "Guest User",
+    role: "user",
+    isVerified: true,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
 };
 
-const getAuthErrorStatus = (err: unknown): number | null => {
-  if (err && typeof err === "object" && "response" in err) {
-    const response = (err as { response?: { status?: number } }).response;
-    if (typeof response?.status === "number") {
-      return response.status;
-    }
-  }
-  return null;
-};
-
-const normalizeRole = (value: unknown): AuthRole | null => {
-  if (value === "contractor") return "contractor";
-  if (value === "user") return "user";
-  return null;
-};
-
-const getClerkMetadataRole = (clerkUser: {
-  publicMetadata?: Record<string, unknown>;
-  unsafeMetadata?: Record<string, unknown>;
-} | null): AuthRole | null => {
-  if (!clerkUser) return null;
-  const rawRole = clerkUser.publicMetadata?.role ?? clerkUser.unsafeMetadata?.role;
-  return normalizeRole(rawRole);
-};
-
-// Pending OAuth role helpers
-const getPendingOAuthRole = (): AuthRole | null => {
+const loadLocalProfile = (): Partial<User> | null => {
   if (typeof window === "undefined") return null;
-  return normalizeRole(localStorage.getItem(OAUTH_ROLE_STORAGE_KEY));
-};
-
-const setPendingOAuthRole = (role: AuthRole | null): void => {
-  if (typeof window === "undefined") return;
-  if (role) {
-    localStorage.setItem(OAUTH_ROLE_STORAGE_KEY, role);
-  } else {
-    localStorage.removeItem(OAUTH_ROLE_STORAGE_KEY);
+  try {
+    const raw = localStorage.getItem(LOCAL_PROFILE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<User>) : null;
+  } catch {
+    return null;
   }
 };
 
-const clearPendingOAuthRole = (): void => {
+const saveLocalProfile = (profile: Partial<User>) => {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(OAUTH_ROLE_STORAGE_KEY);
+  try {
+    localStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    // Ignore storage errors
+  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { showToast } = useNotifications();
-  const { isLoaded: clerkLoaded, isSignedIn, getToken } = useClerkAuth();
-  const { signOut } = useClerk();
-  const { user: clerkUser, isLoaded: clerkUserLoaded } = useUser();
-  const { isLoaded: signInLoaded, signIn, setActive: setActiveSignIn } = useSignIn();
-  const { isLoaded: signUpLoaded, signUp, setActive: setActiveSignUp } = useSignUp();
-
   const [user, setUser] = useState<User | null>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [isBusy, setIsBusy] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isAuthenticated = !!user && isSignedIn;
-  const isClerkSignedIn = isSignedIn;
+  const hydrateUser = (nextUser: User | null) => {
+    setUser(nextUser);
+    authSession.setUser(nextUser);
+    authSession.setAuthenticated(true);
+  };
 
-  // Accept pending project invite after login/register
-  const acceptPendingInvite = useCallback(async () => {
-    const token = localStorage.getItem("pending-invite-token");
-    if (!token) return;
-    try {
-      await projectsApi.acceptInvite(token);
-      localStorage.removeItem("pending-invite-token");
-    } catch (err) {
-      console.error("Failed to accept pending invite:", err);
-    }
-  }, []);
-
-  // Ensure Clerk user has role metadata set
-  const ensureClerkRole = useCallback(async (): Promise<boolean> => {
-    const pendingRole = getPendingOAuthRole();
-    if (!pendingRole || !clerkUser) return true;
-
-    const existingRole = getClerkMetadataRole(clerkUser);
-    if (!existingRole) {
-      try {
-        await clerkUser.update({
-          unsafeMetadata: { ...clerkUser.unsafeMetadata, role: pendingRole },
-        });
-      } catch (err) {
-        console.error("Failed to persist Clerk role metadata:", err);
-        return false;
-      }
-    }
-
-    clearPendingOAuthRole();
-    return true;
-  }, [clerkUser]);
-
-  // Sync auth token with session storage
-  const syncToken = useCallback(async () => {
-    if (!clerkLoaded || !isSignedIn) {
-      authSession.setToken(null);
-      return;
-    }
-    const token = await getToken();
-    authSession.setToken(token || null);
-  }, [clerkLoaded, getToken, isSignedIn]);
-
-  // Fetch current user from backend with retry logic
-  const refreshUser = useCallback(async (retryCount = 0) => {
-    if (!isSignedIn) return;
-
-    await syncToken();
-
-    const canProceed = await ensureClerkRole();
-    if (!canProceed) return;
+  const loadSession = async () => {
+    setIsLoading(true);
+    setError(null);
 
     try {
       const response = await authApi.getMe();
       if (response.success && response.data?.user) {
-        setUser(response.data.user);
-        authSession.setUser(response.data.user);
-      }
-    } catch (err) {
-      const status = getAuthErrorStatus(err);
-
-      // On 401/403, retry a few times before giving up (token might not be ready yet after OAuth)
-      if ((status === 401 || status === 403) && retryCount < 3) {
-        console.warn(`Auth check failed (attempt ${retryCount + 1}/3), retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-        return refreshUser(retryCount + 1);
-      }
-
-      // After retries exhausted, sign out
-      if (status === 401 || status === 403) {
-        console.error("Auth check failed after retries, signing out");
-        await signOut();
-        authSession.clear();
-        setUser(null);
-      }
-      throw err;
-    }
-  }, [ensureClerkRole, isSignedIn, signOut, syncToken]);
-
-  // Set up token provider
-  useEffect(() => {
-    if (!clerkLoaded) return;
-
-    authSession.setTokenProvider(async () => {
-      if (!isSignedIn) return null;
-      return getToken();
-    });
-  }, [clerkLoaded, getToken, isSignedIn]);
-
-  // Sync authentication state
-  useEffect(() => {
-    authSession.setAuthenticated(!!isAuthenticated);
-    if (isAuthenticated) {
-      guestSession.disable();
-    }
-  }, [isAuthenticated]);
-
-  // Bootstrap auth on mount
-  useEffect(() => {
-    if (!clerkLoaded) return;
-
-    const pendingRole = getPendingOAuthRole();
-    if (isSignedIn && pendingRole && !clerkUserLoaded) return;
-
-    const bootstrap = async () => {
-      if (!isSignedIn) {
-        authSession.clear();
-        setUser(null);
-        setIsInitializing(false);
+        hydrateUser(response.data.user);
+        saveLocalProfile({
+          name: response.data.user.name,
+          email: response.data.user.email,
+          phone: response.data.user.phone,
+          company: response.data.user.company,
+          specializations: response.data.user.specializations,
+          avatar: response.data.user.avatar,
+        });
         return;
       }
+    } catch (err) {
+      console.warn("Session fetch failed, using local guest profile.");
+    }
 
-      try {
-        await refreshUser();
-      } catch (err) {
-        console.error("Auth check failed:", err);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
+    const localProfile = loadLocalProfile();
+    const fallbackUser = createFallbackUser(localProfile || undefined);
+    hydrateUser(fallbackUser);
+  };
 
-    bootstrap();
-  }, [clerkLoaded, clerkUserLoaded, isSignedIn, refreshUser]);
-
-  // Refresh token periodically
   useEffect(() => {
-    if (!clerkLoaded || !isSignedIn) return;
+    authSession.setTokenProvider(async () => null);
+    authSession.setAuthenticated(true);
+    loadSession().finally(() => setIsLoading(false));
+  }, []);
 
-    let isActive = true;
-
-    const refresh = async () => {
-      try {
-        const token = await getToken();
-        if (isActive) {
-          authSession.setToken(token || null);
-        }
-      } catch (err) {
-        console.error("Failed to refresh Clerk token:", err);
-      }
+  const updateProfile = async (data: Partial<User>) => {
+    setError(null);
+    const nextLocal = {
+      ...(user || createFallbackUser()),
+      ...data,
+      updatedAt: new Date().toISOString(),
     };
-
-    refresh();
-    const interval = setInterval(refresh, 4 * 60 * 1000);
-
-    return () => {
-      isActive = false;
-      clearInterval(interval);
-    };
-  }, [clerkLoaded, getToken, isSignedIn]);
-
-  // Login with email and password
-  const login = useCallback(async (email: string, password: string) => {
-    if (!signInLoaded || !signIn) {
-      throw new Error("Sign in is not ready yet.");
-    }
-
-    setIsBusy(true);
-    setError(null);
-    clearPendingOAuthRole();
-
-    try {
-      const result = await signIn.create({ identifier: email, password });
-
-      if (result.status !== "complete") {
-        throw new Error("Sign in requires additional verification.");
-      }
-
-      await setActiveSignIn({ session: result.createdSessionId });
-      resetPusherClient();
-      await refreshUser();
-      await acceptPendingInvite();
-    } catch (err) {
-      const message = getErrorMessage(err, "Login failed");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [acceptPendingInvite, refreshUser, setActiveSignIn, signIn, signInLoaded]);
-
-  // Register new user
-  const register = useCallback(async (data: { email: string; password: string; name: string; phone?: string; role?: string }) => {
-    if (!signUpLoaded || !signUp) {
-      throw new Error("Sign up is not ready yet.");
-    }
-
-    setIsBusy(true);
-    setError(null);
-    clearPendingOAuthRole();
-
-    try {
-      const trimmedName = data.name.trim();
-      const [firstName, ...rest] = trimmedName.split(" ");
-      const lastName = rest.join(" ") || undefined;
-      const role = data.role === "contractor" ? "contractor" : "user";
-
-      const result = await signUp.create({
-        emailAddress: data.email,
-        password: data.password,
-        firstName: firstName || undefined,
-        lastName,
-        unsafeMetadata: { role },
-      });
-
-      if (result.status === "complete") {
-        await setActiveSignUp({ session: result.createdSessionId });
-        resetPusherClient();
-        await refreshUser();
-        await acceptPendingInvite();
-        return { status: "complete" as const };
-      }
-
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      return { status: "needs_verification" as const };
-    } catch (err) {
-      const message = getErrorMessage(err, "Registration failed");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [acceptPendingInvite, refreshUser, setActiveSignUp, signUp, signUpLoaded]);
-
-  // Sign in with OAuth provider (Google, GitHub, etc.)
-  const signInWithOAuth = useCallback(async (provider: OAuthProvider, redirectTo?: string) => {
-    setError(null);
-    clearPendingOAuthRole();
-
-    try {
-      if (!signInLoaded || !signIn) {
-        throw new Error("Sign in is not ready yet. Please wait a moment and try again.");
-      }
-
-      // If user is still signed in, don't proceed - the calling component should handle logout first
-      if (isSignedIn) {
-        throw new Error("Please sign out before signing in with a different account.");
-      }
-
-      const strategy = `oauth_${provider}` as const;
-
-      await signIn.authenticateWithRedirect({
-        strategy,
-        redirectUrl: "/sso-callback",
-        redirectUrlComplete: redirectTo || "/home",
-      });
-      // Note: Page will redirect, so no need to handle success or reset loading
-    } catch (err) {
-      const message = getErrorMessage(err, "Social sign-in failed");
-      setError(message);
-      throw err;
-    }
-  }, [isSignedIn, signIn, signInLoaded]);
-
-  // Sign up with OAuth provider
-  const signUpWithOAuth = useCallback(async (provider: OAuthProvider, options?: { redirectTo?: string; role?: AuthRole }) => {
-    setError(null);
-    const role = normalizeRole(options?.role);
-    setPendingOAuthRole(role);
-
-    try {
-      if (!signUpLoaded || !signUp) {
-        throw new Error("Sign up is not ready yet. Please wait a moment and try again.");
-      }
-
-      const strategy = `oauth_${provider}` as const;
-
-      // Check if the OAuth strategy is available by attempting to create a sign-up
-      // Clerk will throw an error if the provider is not configured
-      await signUp.authenticateWithRedirect({
-        strategy,
-        redirectUrl: "/sso-callback",
-        redirectUrlComplete: options?.redirectTo || "/home",
-      });
-      // Note: Page will redirect, so no need to handle success or reset loading
-    } catch (err) {
-      clearPendingOAuthRole();
-      // Enhance error message for OAuth configuration issues
-      const originalMessage = getErrorMessage(err, "Social sign-up failed");
-      const isOAuthError = originalMessage.toLowerCase().includes('oauth') ||
-                          originalMessage.toLowerCase().includes('strategy') ||
-                          originalMessage.toLowerCase().includes('provider');
-      const message = isOAuthError
-        ? `${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled. Please configure it in your Clerk Dashboard → Social Connections.`
-        : originalMessage;
-      setError(message);
-      throw err;
-    }
-  }, [signUp, signUpLoaded]);
-
-  // Verify email with code
-  const verifyEmail = useCallback(async (code: string) => {
-    if (!signUpLoaded || !signUp) {
-      throw new Error("Email verification is not ready yet.");
-    }
-
-    setIsBusy(true);
-    setError(null);
-
-    try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-
-      if (result.status !== "complete") {
-        throw new Error("Email verification failed.");
-      }
-
-      await setActiveSignUp({ session: result.createdSessionId });
-      resetPusherClient();
-      await refreshUser();
-      await acceptPendingInvite();
-    } catch (err) {
-      const message = getErrorMessage(err, "Email verification failed");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [acceptPendingInvite, refreshUser, setActiveSignUp, signUp, signUpLoaded]);
-
-  // Logout
-  const logout = useCallback(async () => {
-    setIsBusy(true);
-    try {
-      await signOut();
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      setUser(null);
-      authSession.clear();
-      resetPusherClient();
-      setIsBusy(false);
-    }
-  }, [signOut]);
-
-  // Update user profile
-  const updateProfile = useCallback(async (data: Partial<User>) => {
-    setIsBusy(true);
-    setError(null);
 
     try {
       const response = await authApi.updateMe(data);
       if (response.success && response.data?.user) {
-        setUser(response.data.user);
-        authSession.setUser(response.data.user);
-      } else {
-        throw new Error(response.error || "Profile update failed");
+        hydrateUser(response.data.user);
+        saveLocalProfile({
+          name: response.data.user.name,
+          email: response.data.user.email,
+          phone: response.data.user.phone,
+          company: response.data.user.company,
+          specializations: response.data.user.specializations,
+          avatar: response.data.user.avatar,
+        });
+        return;
       }
     } catch (err) {
-      const message = getErrorMessage(err, "Profile update failed");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, []);
-
-  // Request password reset
-  const forgotPassword = useCallback(async (email: string) => {
-    if (!signInLoaded || !signIn) {
-      throw new Error("Password reset is not ready yet.");
+      // Fall back to local-only profile updates
     }
 
-    setIsBusy(true);
-    setError(null);
-
-    try {
-      const result = await signIn.create({ identifier: email });
-      const resetFactor = result.supportedFirstFactors?.find(
-        (factor) => factor.strategy === "reset_password_email_code"
-      );
-
-      if (!resetFactor || !("emailAddressId" in resetFactor)) {
-        throw new Error("Password reset via email code is unavailable.");
-      }
-
-      await signIn.prepareFirstFactor({
-        strategy: "reset_password_email_code",
-        emailAddressId: resetFactor.emailAddressId as string,
-      });
-    } catch (err) {
-      const message = getErrorMessage(err, "Failed to send reset email");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [signIn, signInLoaded]);
-
-  // Reset password with code
-  const resetPassword = useCallback(async (code: string, password: string) => {
-    if (!signInLoaded || !signIn) {
-      throw new Error("Password reset is not initialized. Please request a reset code again.");
-    }
-
-    setIsBusy(true);
-    setError(null);
-
-    try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code,
-        password,
-      });
-
-      if (result.status !== "complete") {
-        throw new Error("Password reset failed.");
-      }
-
-      await setActiveSignIn({ session: result.createdSessionId });
-      resetPusherClient();
-      await refreshUser();
-    } catch (err) {
-      const message = getErrorMessage(err, "Password reset failed");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [refreshUser, setActiveSignIn, signIn, signInLoaded]);
-
-  // Change password (when logged in)
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    if (!clerkUser) {
-      throw new Error("User is not ready.");
-    }
-
-    setIsBusy(true);
-    setError(null);
-
-    try {
-      await clerkUser.updatePassword({ currentPassword, newPassword });
-    } catch (err) {
-      const message = getErrorMessage(err, "Password change failed");
-      setError(message);
-      throw err;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [clerkUser]);
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  // Subscribe to real-time events for authenticated user
-  useEffect(() => {
-    if (!isAuthenticated || !user?._id) return;
-
-    const channelName = getUserChannelName(user._id);
-    const channel = subscribeToChannel(channelName);
-    if (!channel) return;
-
-    const handleProjectCreated = (payload: { project?: { name?: string } }) => {
-      showToast({
-        type: "success",
-        message: "Project created",
-        description: payload.project?.name || "A new project is ready.",
-      });
-    };
-
-    const handleProjectDeleted = () => {
-      showToast({
-        type: "warning",
-        message: "Project removed",
-        description: "A project was deleted.",
-      });
-    };
-
-    channel.bind("project.created", handleProjectCreated);
-    channel.bind("project.deleted", handleProjectDeleted);
-
-    return () => {
-      channel.unbind("project.created", handleProjectCreated);
-      channel.unbind("project.deleted", handleProjectDeleted);
-      unsubscribeFromChannel(channelName);
-    };
-  }, [isAuthenticated, showToast, user?._id]);
-
-  const value: AuthContextType = {
-    user,
-    isAuthenticated: !!isAuthenticated,
-    isClerkSignedIn,
-    isLoading: isInitializing || isBusy,
-    error,
-    login,
-    register,
-    signInWithOAuth,
-    signUpWithOAuth,
-    verifyEmail,
-    logout,
-    updateProfile,
-    forgotPassword,
-    resetPassword,
-    changePassword,
-    refreshUser,
-    clearError,
+    hydrateUser(nextLocal);
+    saveLocalProfile({
+      name: nextLocal.name,
+      email: nextLocal.email,
+      phone: nextLocal.phone,
+      company: nextLocal.company,
+      specializations: nextLocal.specializations,
+      avatar: nextLocal.avatar,
+    });
   };
+
+  const disabledAction = async () => {
+    const message = "Authentication is disabled in this build.";
+    setError(message);
+    throw new Error(message);
+  };
+
+  const clearError = () => setError(null);
+
+  const value = useMemo<AuthContextType>(() => ({
+    user,
+    isAuthenticated: true,
+    isClerkSignedIn: false,
+    isLoading,
+    error,
+    login: disabledAction,
+    register: async () => ({ status: "complete" as const }),
+    signInWithOAuth: disabledAction,
+    signUpWithOAuth: disabledAction,
+    verifyEmail: disabledAction,
+    logout: async () => {
+      clearError();
+      const fallbackUser = createFallbackUser(loadLocalProfile() || undefined);
+      hydrateUser(fallbackUser);
+    },
+    updateProfile,
+    forgotPassword: disabledAction,
+    resetPassword: disabledAction,
+    changePassword: disabledAction,
+    refreshUser: loadSession,
+    clearError,
+  }), [error, isLoading, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

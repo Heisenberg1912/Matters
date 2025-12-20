@@ -11,7 +11,7 @@ import connectDB from './config/database.js';
 import validateEnv from './config/validateEnv.js';
 
 // Route imports
-import authRoutes from './routes/auth.js';
+import sessionRoutes from './routes/session.js';
 import projectRoutes from './routes/projects.js';
 import stageRoutes from './routes/stages.js';
 import budgetRoutes from './routes/budget.js';
@@ -128,7 +128,7 @@ app.get(`${API_PREFIX}/health`, (req, res) => {
 });
 
 // API Routes
-app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/session`, sessionRoutes);
 app.use(`${API_PREFIX}/projects`, projectRoutes);
 app.use(`${API_PREFIX}/stages`, stageRoutes);
 app.use(`${API_PREFIX}/budget`, budgetRoutes);

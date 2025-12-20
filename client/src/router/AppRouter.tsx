@@ -1,14 +1,8 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import SSOCallback from "@/pages/SSOCallback";
 import Home from "@/pages/Home";
 import PlansDrawings from "@/pages/PlansDrawings";
 import Splash from "@/pages/Splash";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import VerifyEmail from "@/pages/VerifyEmail";
 import AcceptInvite from "@/pages/AcceptInvite";
 import Budget from "@/pages/Budget";
 import Inventory from "@/pages/Inventory";
@@ -30,7 +24,6 @@ import Documents from "@/pages/Documents";
 import Reports from "@/pages/Reports";
 import Terms from "@/pages/Terms";
 import ProtectedRoute from "@/router/ProtectedRoute";
-import PublicRoute from "@/router/PublicRoute";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -39,47 +32,6 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Splash />} />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route path="/sso-callback" element={<SSOCallback />} />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPassword />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/verify-email"
-          element={
-            <PublicRoute>
-              <VerifyEmail />
-            </PublicRoute>
-          }
-        />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route
           path="/home"

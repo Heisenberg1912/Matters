@@ -1,203 +1,62 @@
-import jwt from 'jsonwebtoken';
-import { clerkClient, verifyToken } from '@clerk/clerk-sdk-node';
 import User from '../models/User.js';
 
-const getPrimaryClerkEmail = (clerkUser) => {
-  const primaryEmail = clerkUser.emailAddresses?.find(
-    (email) => email.id === clerkUser.primaryEmailAddressId
-  );
-  return (primaryEmail || clerkUser.emailAddresses?.[0])?.emailAddress?.toLowerCase() || null;
-};
+const GUEST_EMAIL = process.env.GUEST_USER_EMAIL || 'guest@matters.local';
+const GUEST_NAME = process.env.GUEST_USER_NAME || 'Guest User';
+const GUEST_ROLE = process.env.GUEST_USER_ROLE || 'user';
 
-const getClerkDisplayName = (clerkUser) => {
-  if (clerkUser.fullName) {
-    return clerkUser.fullName;
-  }
-  const parts = [clerkUser.firstName, clerkUser.lastName].filter(Boolean);
-  return parts.length > 0 ? parts.join(' ') : null;
-};
+let cachedGuestUser = null;
 
-const getClerkRole = (clerkUser) => {
-  const rawRole =
-    clerkUser.publicMetadata?.role ||
-    clerkUser.unsafeMetadata?.role ||
-    clerkUser.privateMetadata?.role;
-  return rawRole === 'contractor' ? 'contractor' : 'user';
-};
-
-const VALID_ROLES = ['user', 'contractor', 'admin', 'superadmin'];
-
-const findOrCreateClerkUser = async (clerkUserId) => {
-  let user = await User.findOne({ clerkId: clerkUserId });
-  if (user) {
-    // Normalize invalid role if needed
-    if (!VALID_ROLES.includes(user.role)) {
-      user.role = 'user';
-      await user.save();
-    }
-    return user;
+const getOrCreateGuestUser = async () => {
+  if (cachedGuestUser) {
+    return cachedGuestUser;
   }
 
-  const clerkUser = await clerkClient.users.getUser(clerkUserId);
-  const email = getPrimaryClerkEmail(clerkUser);
-  if (!email) {
-    throw new Error('Clerk user email is missing.');
-  }
+  let user = await User.findOne({ email: GUEST_EMAIL });
 
-  const role = getClerkRole(clerkUser);
-  const displayName = getClerkDisplayName(clerkUser) || email.split('@')[0];
-
-  user = await User.findOne({ email });
-  if (user) {
-    user.clerkId = clerkUserId;
-    user.authProvider = 'clerk';
-    user.isVerified = true;
-    // Normalize invalid role
-    if (!VALID_ROLES.includes(user.role)) {
-      user.role = role;
-    }
-    if (!user.avatar && clerkUser.imageUrl) {
-      user.avatar = clerkUser.imageUrl;
-    }
-    if (!user.name && displayName) {
-      user.name = displayName;
-    }
+  if (!user) {
+    user = await User.create({
+      email: GUEST_EMAIL,
+      name: GUEST_NAME,
+      role: GUEST_ROLE,
+      authProvider: 'local',
+      isVerified: true,
+      isActive: true,
+    });
+  } else if (!user.isActive) {
+    user.isActive = true;
     await user.save();
-    return user;
   }
 
-  user = await User.create({
-    email,
-    name: displayName,
-    avatar: clerkUser.imageUrl || null,
-    role,
-    authProvider: 'clerk',
-    clerkId: clerkUserId,
-    isVerified: true,
-  });
-
+  cachedGuestUser = user;
   return user;
 };
 
-const resolveClerkUserFromToken = async (token) => {
-  if (!process.env.CLERK_SECRET_KEY) {
-    return null;
-  }
-
-  const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
-  if (!payload?.sub) {
-    return null;
-  }
-
-  return findOrCreateClerkUser(payload.sub);
-};
-
-// Verify access token
+// Attach a guest user to every request (login is disabled).
 export const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'Access denied. No token provided.',
-      });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    let user = null;
-    let clerkError = null;
-
-    try {
-      user = await resolveClerkUserFromToken(token);
-    } catch (error) {
-      clerkError = error;
-    }
-
-    if (!user) {
-      try {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
-        );
-
-        user = await User.findById(decoded.userId);
-      } catch (jwtError) {
-        if (jwtError.name === 'TokenExpiredError') {
-          return res.status(401).json({
-            success: false,
-            error: 'Token expired.',
-            code: 'TOKEN_EXPIRED',
-          });
-        }
-        if (clerkError) {
-          console.warn('Clerk auth failed:', clerkError.message || clerkError);
-        }
-        throw jwtError;
-      }
-    }
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not found.',
-      });
-    }
-
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        error: 'Account is deactivated.',
-      });
-    }
-
+    const user = await getOrCreateGuestUser();
     req.user = user;
     req.userId = user._id;
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    return res.status(401).json({
+    console.error('Guest auth error:', error);
+    res.status(500).json({
       success: false,
-      error: 'Invalid token.',
+      error: 'Failed to initialize guest session.',
     });
   }
 };
 
-// Optional authentication (doesn't fail if no token)
+// Optional authentication (always attaches guest user when possible)
 export const optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-      let user = await resolveClerkUserFromToken(token);
-
-      if (!user) {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
-        );
-        user = await User.findById(decoded.userId);
-      }
-
-      if (user && user.isActive) {
-        req.user = user;
-        req.userId = user._id;
-      }
-    } catch {
-      // Token is invalid or expired, continue without auth
-    }
-
-    next();
+    const user = await getOrCreateGuestUser();
+    req.user = user;
+    req.userId = user._id;
   } catch (error) {
-    next();
+    console.warn('Optional guest auth failed:', error);
   }
+  next();
 };
 
 // Check for specific roles

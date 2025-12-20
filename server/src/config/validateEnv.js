@@ -6,14 +6,6 @@ const validateEnv = () => {
   const missing = [];
 
   if (process.env.NODE_ENV === 'production') {
-    missing.push(
-      ...collectMissing([
-        'JWT_ACCESS_SECRET',
-        'JWT_REFRESH_SECRET',
-        'CLERK_SECRET_KEY',
-      ])
-    );
-
     if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
       missing.push('MONGO_URI');
     }

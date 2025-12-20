@@ -11,8 +11,8 @@ const sections = [
   {
     title: "Account Responsibilities",
     content: [
-      "Provide accurate registration details and keep your profile updated.",
-      "Maintain the confidentiality of your login credentials.",
+      "Provide accurate profile details and keep your workspace updated.",
+      "Maintain the confidentiality of your workspace access.",
       "Notify us immediately if you suspect unauthorized access."
     ],
   },
@@ -116,7 +116,7 @@ export default function Terms() {
 
                 <Card className="mt-8 border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-10">
                   <p className="text-xl leading-relaxed text-[#bdbdbd]">
-                    By creating an account or using Matters, you agree to these Terms of Service.
+                    By using Matters, you agree to these Terms of Service.
                     If you do not agree, please discontinue use of the platform.
                   </p>
                   <p className="mt-6 text-lg text-[#8a8a8a]">

@@ -19,7 +19,7 @@ export default function Settings() {
   const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
   const { isOnline, queue, lastSynced, syncNow } = useOffline();
   const { showToast } = useNotifications();
-  const { user, updateProfile, changePassword, logout } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { isInstallable, isInstalled, install } = useInstallPrompt();
 
   const handleInstall = async () => {
@@ -35,13 +35,7 @@ export default function Settings() {
     company: "",
     specializations: "",
   });
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -71,27 +65,6 @@ export default function Settings() {
       showToast({ type: "error", message: "Failed to update profile" });
     } finally {
       setIsSavingProfile(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      showToast({ type: "error", message: "Please fill all password fields" });
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast({ type: "error", message: "Passwords do not match" });
-      return;
-    }
-    setIsSavingPassword(true);
-    try {
-      await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      showToast({ type: "success", message: "Password updated" });
-    } catch (error) {
-      showToast({ type: "error", message: "Failed to update password" });
-    } finally {
-      setIsSavingPassword(false);
     }
   };
 
@@ -137,7 +110,7 @@ export default function Settings() {
                   onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
                   className="w-full rounded-xl xs:rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-3 xs:px-4 py-2 xs:py-3 text-sm xs:text-base text-white outline-none focus:border-[#cfe0ad] touch-target"
                 />
-                <p className="text-xs text-[#8a8a8a]">Signed in as {user?.email}</p>
+                <p className="text-xs text-[#8a8a8a]">Profile email: {user?.email || "guest@matters.local"}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 xs:gap-4 sm:grid-cols-2">
@@ -272,53 +245,13 @@ export default function Settings() {
             </Card>
 
             <Card className="space-y-3 xs:space-y-4 rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border border-[#2a2a2a] bg-[#0f0f0f] p-4 xs:p-5 sm:p-6">
-              <p className="text-base xs:text-lg font-semibold text-white">Security</p>
-              <p className="text-xs xs:text-sm text-[#b9b9b9]">Update your password and session controls</p>
-              <div className="space-y-2 xs:space-y-3">
-                <input
-                  type="password"
-                  placeholder="Current password"
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                  className="w-full rounded-xl xs:rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-3 xs:px-4 py-2 text-xs xs:text-sm text-white outline-none focus:border-[#cfe0ad] touch-target"
-                />
-                <input
-                  type="password"
-                  placeholder="New password"
-                  value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                  className="w-full rounded-xl xs:rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-3 xs:px-4 py-2 text-xs xs:text-sm text-white outline-none focus:border-[#cfe0ad] touch-target"
-                />
-                <input
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                  className="w-full rounded-xl xs:rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-3 xs:px-4 py-2 text-xs xs:text-sm text-white outline-none focus:border-[#cfe0ad] touch-target"
-                />
+              <p className="text-base xs:text-lg font-semibold text-white">Session</p>
+              <p className="text-xs xs:text-sm text-[#b9b9b9]">
+                Authentication is disabled. This workspace runs in guest mode.
+              </p>
+              <div className="rounded-xl border border-[#1f1f1f] bg-[#0b0b0b] p-3 text-xs xs:text-sm text-[#cfcfcf]">
+                Profile updates are saved to your session and local storage.
               </div>
-              <button
-                type="button"
-                className="rounded-full border border-[#2a2a2a] px-3 xs:px-4 py-1.5 xs:py-2 text-xs xs:text-sm font-semibold text-white disabled:opacity-60 touch-target focus-ring"
-                onClick={handleChangePassword}
-                disabled={isSavingPassword}
-              >
-                {isSavingPassword ? "Updating..." : "Update password"}
-              </button>
-              <button
-                type="button"
-                className="rounded-full bg-[#cfe0ad] px-3 xs:px-4 py-1.5 xs:py-2 text-xs xs:text-sm font-semibold text-black touch-target focus-ring"
-                onClick={() => logout()}
-              >
-                Sign out
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-[#2a2a2a] px-3 xs:px-4 py-1.5 xs:py-2 text-xs xs:text-sm font-semibold text-white touch-target focus-ring"
-                onClick={() => logout(true)}
-              >
-                Sign out everywhere
-              </button>
             </Card>
 
             <Card className="space-y-3 xs:space-y-4 rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border border-[#2a2a2a] bg-[#0f0f0f] p-4 xs:p-5 sm:p-6">
