@@ -350,12 +350,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const strategy = `oauth_${provider}` as const;
 
-      // Check if the OAuth strategy is available
-      const availableStrategies = signIn.supportedFirstFactors?.map(f => f.strategy) || [];
-      if (!availableStrategies.includes(strategy)) {
-        throw new Error(`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled. Please configure it in your Clerk Dashboard → User & Authentication → Social Connections.`);
-      }
-
       await signIn.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",

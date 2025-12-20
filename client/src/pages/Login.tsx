@@ -83,14 +83,9 @@ export default function Login() {
     try {
       await signInWithOAuth(provider, redirectTo);
       // OAuth redirects away, so we don't need to handle success here
-    } catch (err) {
+    } catch {
       setIsOAuthLoading(false);
-      // Check for common OAuth configuration issues
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      if (errorMsg.includes('oauth') || errorMsg.includes('OAuth') || errorMsg.includes('strategy')) {
-        setLocalError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in is not configured. Please enable it in your Clerk Dashboard under Social Connections.`);
-      }
-      // Other errors are set by AuthContext
+      // Error is set by AuthContext
     }
   };
 

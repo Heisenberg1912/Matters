@@ -1,76 +1,89 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useClerk } from "@clerk/clerk-react";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
 import { useAuth } from "@/context/AuthContext";
 import PhoneShell from "@/components/phone-shell";
 import { Loader2 } from "lucide-react";
 
 export default function SSOCallback() {
   const navigate = useNavigate();
-  const { handleRedirectCallback } = useClerk();
-  const { isAuthenticated, isLoading, error } = useAuth();
-  const [callbackError, setCallbackError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(true);
+  const { isSignedIn, isLoaded: clerkLoaded } = useClerkAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const [showDebug, setShowDebug] = useState(false);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
-  // Handle the OAuth callback
+  // Debug: show state after 5 seconds
   useEffect(() => {
-    const processCallback = async () => {
-      try {
-        // Let Clerk process the OAuth callback
-        await handleRedirectCallback({
-          signInFallbackRedirectUrl: "/home",
-          signUpFallbackRedirectUrl: "/home",
-        });
-      } catch (err) {
-        console.error("OAuth callback error:", err);
-        setCallbackError(err instanceof Error ? err.message : "Authentication failed");
-      } finally {
-        setIsProcessing(false);
-      }
-    };
+    const timer = setTimeout(() => setShowDebug(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
-    processCallback();
-  }, [handleRedirectCallback]);
-
-  // Redirect once authenticated
+  // Timeout: if stuck for 15 seconds, redirect to login
   useEffect(() => {
-    if (isProcessing) return;
-    if (isLoading) return;
+    const timer = setTimeout(() => {
+      setTimeoutReached(true);
+      console.error("SSO Callback timeout - auth state:", {
+        clerkLoaded,
+        isSignedIn,
+        isAuthenticated,
+        isLoading,
+      });
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [clerkLoaded, isSignedIn, isAuthenticated, isLoading]);
 
-    if (isAuthenticated) {
+  // Once Clerk confirms sign-in AND our auth context is ready, redirect
+  useEffect(() => {
+    if (clerkLoaded && isSignedIn && !isLoading && isAuthenticated) {
+      console.log("SSO complete, redirecting to home");
       navigate("/home", { replace: true });
-    } else if (callbackError || error) {
-      // Give a moment to show the error, then redirect
-      const timer = setTimeout(() => {
-        navigate("/login", { replace: true });
-      }, 3000);
-      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isLoading, isProcessing, callbackError, error, navigate]);
+  }, [clerkLoaded, isSignedIn, isLoading, isAuthenticated, navigate]);
 
-  // Show error if any
-  const displayError = callbackError || error;
-  if (displayError && !isProcessing) {
+  // If timeout reached and not authenticated, go to login
+  if (timeoutReached && !isAuthenticated) {
     return (
       <PhoneShell className="items-center justify-center">
         <div className="text-center p-6 max-w-sm">
-          <div className="text-red-400 font-medium mb-3">Sign in failed</div>
-          <p className="text-muted text-sm mb-4">{displayError}</p>
-          <p className="text-muted/60 text-xs">Redirecting to login...</p>
+          <div className="text-yellow-400 font-medium mb-3">Sign in taking too long</div>
+          <p className="text-muted text-sm mb-4">Please try again</p>
+          <button
+            onClick={() => navigate("/login", { replace: true })}
+            className="px-4 py-2 bg-pill text-background rounded-lg"
+          >
+            Back to Login
+          </button>
         </div>
       </PhoneShell>
     );
   }
 
-  // Loading state
   return (
-    <PhoneShell className="items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-pill" />
-        <p className="text-muted text-sm">
-          {isProcessing ? "Processing sign in..." : "Completing sign in..."}
-        </p>
-      </div>
-    </PhoneShell>
+    <>
+      {/* Clerk's callback handler */}
+      <AuthenticateWithRedirectCallback
+        signInFallbackRedirectUrl="/home"
+        signUpFallbackRedirectUrl="/home"
+      />
+
+      {/* Loading overlay */}
+      <PhoneShell className="items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-pill" />
+          <p className="text-muted text-sm">Completing sign in...</p>
+
+          {/* Debug info after 5 seconds */}
+          {showDebug && (
+            <div className="mt-4 p-3 bg-card rounded-lg text-xs text-muted space-y-1">
+              <p>Clerk loaded: {clerkLoaded ? "yes" : "no"}</p>
+              <p>Clerk signed in: {isSignedIn ? "yes" : "no"}</p>
+              <p>Auth loading: {isLoading ? "yes" : "no"}</p>
+              <p>Authenticated: {isAuthenticated ? "yes" : "no"}</p>
+            </div>
+          )}
+        </div>
+      </PhoneShell>
+    </>
   );
 }
