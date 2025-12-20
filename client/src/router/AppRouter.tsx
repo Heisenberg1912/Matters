@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
+import SSOCallback from "@/pages/SSOCallback";
 import Home from "@/pages/Home";
 import PlansDrawings from "@/pages/PlansDrawings";
 import Splash from "@/pages/Splash";
@@ -47,7 +47,7 @@ function AnimatedRoutes() {
             </PublicRoute>
           }
         />
-        <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+        <Route path="/sso-callback" element={<SSOCallback />} />
         <Route
           path="/register"
           element={

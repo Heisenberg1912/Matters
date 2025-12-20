@@ -153,8 +153,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authSession.setToken(token || null);
   }, [clerkLoaded, getToken, isSignedIn]);
 
-  // Fetch current user from backend
-  const refreshUser = useCallback(async () => {
+  // Fetch current user from backend with retry logic
+  const refreshUser = useCallback(async (retryCount = 0) => {
     if (!isSignedIn) return;
 
     await syncToken();
@@ -170,7 +170,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       const status = getAuthErrorStatus(err);
+
+      // On 401/403, retry a few times before giving up (token might not be ready yet after OAuth)
+      if ((status === 401 || status === 403) && retryCount < 3) {
+        console.warn(`Auth check failed (attempt ${retryCount + 1}/3), retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return refreshUser(retryCount + 1);
+      }
+
+      // After retries exhausted, sign out
       if (status === 401 || status === 403) {
+        console.error("Auth check failed after retries, signing out");
         await signOut();
         authSession.clear();
         setUser(null);
@@ -339,6 +349,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const strategy = `oauth_${provider}` as const;
+
+      // Check if the OAuth strategy is available
+      const availableStrategies = signIn.supportedFirstFactors?.map(f => f.strategy) || [];
+      if (!availableStrategies.includes(strategy)) {
+        throw new Error(`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled. Please configure it in your Clerk Dashboard → User & Authentication → Social Connections.`);
+      }
+
       await signIn.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
@@ -364,6 +381,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const strategy = `oauth_${provider}` as const;
+
+      // Check if the OAuth strategy is available by attempting to create a sign-up
+      // Clerk will throw an error if the provider is not configured
       await signUp.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
@@ -372,7 +392,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Note: Page will redirect, so no need to handle success or reset loading
     } catch (err) {
       clearPendingOAuthRole();
-      const message = getErrorMessage(err, "Social sign-up failed");
+      // Enhance error message for OAuth configuration issues
+      const originalMessage = getErrorMessage(err, "Social sign-up failed");
+      const isOAuthError = originalMessage.toLowerCase().includes('oauth') ||
+                          originalMessage.toLowerCase().includes('strategy') ||
+                          originalMessage.toLowerCase().includes('provider');
+      const message = isOAuthError
+        ? `${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled. Please configure it in your Clerk Dashboard → Social Connections.`
+        : originalMessage;
       setError(message);
       throw err;
     }
