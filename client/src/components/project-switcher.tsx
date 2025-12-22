@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useProject } from "@/context/ProjectContext";
+import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,9 @@ const projectTypes = ["residential", "commercial", "industrial", "renovation", "
 
 export default function ProjectSwitcher({ className }: { className?: string }) {
   const { currentProject, projects, fetchProjects, createProject, selectProjectById, isLoading } = useProject();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [formState, setFormState] = useState({
@@ -35,12 +38,21 @@ export default function ProjectSwitcher({ className }: { className?: string }) {
     }
   }, [open, projects.length, fetchProjects]);
 
+  useEffect(() => {
+    if (!open) {
+      setCreateOpen(false);
+      setError("");
+    }
+  }, [open]);
+
   const projectLabel = useMemo(() => {
     if (currentProject?.name) {
       return currentProject.name;
     }
     return "Select project";
   }, [currentProject?.name]);
+
+  const isGuest = user?.email === "guest@matters.local";
 
   const handleChange = (key: string, value: string) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -135,96 +147,113 @@ export default function ProjectSwitcher({ className }: { className?: string }) {
               </div>
             </div>
 
-            <div className="border-t border-[#2a2a2a] pt-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <Plus className="h-4 w-4 text-[#cfe0ad]" />
-                Create new project
+            <div className="border-t border-[#2a2a2a] pt-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <Plus className="h-4 w-4 text-[#cfe0ad]" />
+                  Create new project
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCreateOpen((prev) => !prev)}
+                >
+                  {createOpen ? "Close" : "New"}
+                </Button>
               </div>
+              {isGuest && (
+                <div className="rounded-lg border border-[#2a2a2a] bg-[#0c0c0c] px-3 py-2 text-xs text-[#bdbdbd]">
+                  Guest mode is active. Projects are stored locally on this device.
+                </div>
+              )}
               {error && (
-                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                   {error}
                 </div>
               )}
-              <form onSubmit={handleSubmit} className="mt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="project-name">Project Name</Label>
-                  <Input
-                    id="project-name"
-                    value={formState.name}
-                    onChange={(event) => handleChange("name", event.target.value)}
-                    placeholder="e.g. Skyline Residence"
+              {createOpen && (
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="project-name">Project Name</Label>
+                    <Input
+                      id="project-name"
+                      value={formState.name}
+                      onChange={(event) => handleChange("name", event.target.value)}
+                      placeholder="e.g. Skyline Residence"
+                      disabled={isSubmitting || isLoading}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Type</Label>
+                      <Select
+                        value={formState.type}
+                        onValueChange={(value) => handleChange("type", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Project type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projectTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="project-city">City</Label>
+                      <Input
+                        id="project-city"
+                        value={formState.city}
+                        onChange={(event) => handleChange("city", event.target.value)}
+                        placeholder="City"
+                        disabled={isSubmitting || isLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="project-budget">Estimated Budget</Label>
+                      <Input
+                        id="project-budget"
+                        type="number"
+                        value={formState.budget}
+                        onChange={(event) => handleChange("budget", event.target.value)}
+                        placeholder="5000000"
+                        disabled={isSubmitting || isLoading}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="project-end-date">Target End Date</Label>
+                      <Input
+                        id="project-end-date"
+                        type="date"
+                        value={formState.expectedEndDate}
+                        onChange={(event) => handleChange("expectedEndDate", event.target.value)}
+                        disabled={isSubmitting || isLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={isSubmitting || isLoading}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label>Type</Label>
-                    <Select
-                      value={formState.type}
-                      onValueChange={(value) => handleChange("type", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Project type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projectTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="project-city">City</Label>
-                    <Input
-                      id="project-city"
-                      value={formState.city}
-                      onChange={(event) => handleChange("city", event.target.value)}
-                      placeholder="City"
-                      disabled={isSubmitting || isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="project-budget">Estimated Budget</Label>
-                    <Input
-                      id="project-budget"
-                      type="number"
-                      value={formState.budget}
-                      onChange={(event) => handleChange("budget", event.target.value)}
-                      placeholder="5000000"
-                      disabled={isSubmitting || isLoading}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="project-end-date">Target End Date</Label>
-                    <Input
-                      id="project-end-date"
-                      type="date"
-                      value={formState.expectedEndDate}
-                      onChange={(event) => handleChange("expectedEndDate", event.target.value)}
-                      disabled={isSubmitting || isLoading}
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting || isLoading}
-                >
-                  {isSubmitting ? "Creating..." : (
-                    <span className="flex items-center justify-center gap-2">
-                      <Layers className="h-4 w-4" />
-                      Create Project
-                    </span>
-                  )}
-                </Button>
-              </form>
+                  >
+                    {isSubmitting ? "Creating..." : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        Create Project
+                      </span>
+                    )}
+                  </Button>
+                </form>
+              )}
             </div>
           </div>
         </DialogContent>

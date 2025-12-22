@@ -28,6 +28,55 @@ interface ProjectContextType {
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
+const LOCAL_PROJECTS_KEY = 'matters-local-projects';
+
+const loadLocalProjects = (): Project[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_PROJECTS_KEY);
+    return raw ? (JSON.parse(raw) as Project[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveLocalProjects = (projects: Project[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(projects));
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+const isLocalProjectId = (projectId: string) => projectId.startsWith('local-');
+
+const buildLocalProject = (data: Partial<Project>): Project => {
+  const now = new Date().toISOString();
+  const owner = authStorage.getUser()?._id || 'guest';
+
+  return {
+    _id: `local-${Date.now()}`,
+    name: data.name || 'Untitled Project',
+    description: data.description,
+    type: data.type || 'residential',
+    status: data.status || 'planning',
+    priority: data.priority || 'medium',
+    mode: data.mode || 'construction',
+    owner,
+    location: data.location,
+    budget: data.budget || { estimated: 0, spent: 0, currency: 'INR' },
+    timeline: data.timeline,
+    progress: data.progress || { percentage: 0 },
+    currentStage: data.currentStage,
+    team: data.team || [],
+    startDate: data.startDate,
+    endDate: data.endDate,
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const { showToast } = useNotifications();
@@ -48,7 +97,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Sync all stores with current project data
   const syncAllStores = useCallback(async () => {
-    if (!currentProject?._id || !isAuthenticated) return;
+    if (!currentProject?._id || !isAuthenticated || isLocalProjectId(currentProject._id)) return;
 
     const projectId = currentProject._id;
     authStorage.setCurrentProject(projectId);
@@ -93,6 +142,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     setError(null);
     try {
+      const localMatch = projects.find((project) => project._id === projectId);
+      if (localMatch && isLocalProjectId(projectId)) {
+        setCurrentProject(localMatch);
+        return;
+      }
       const response = await projectsApi.getById(projectId);
       if (response.success && response.data?.project) {
         setCurrentProject(response.data.project);
@@ -101,35 +155,55 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load project';
+      const localMatch = projects.find((project) => project._id === projectId);
+      if (localMatch) {
+        setCurrentProject(localMatch);
+        return;
+      }
       setError(message);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [setCurrentProject]);
+  }, [projects, setCurrentProject]);
 
   // Fetch all projects
   const fetchProjects = useCallback(async () => {
-    if (!isAuthenticated) return;
+    const hydrateProjects = (projectList: Project[]) => {
+      setProjects(projectList);
+
+      const storedProjectId = authStorage.getCurrentProjectId();
+      const storedProject = storedProjectId
+        ? projectList.find((project) => project._id === storedProjectId)
+        : null;
+
+      if (!currentProject && projectList.length > 0) {
+        setCurrentProject(storedProject || projectList[0]);
+      }
+    };
+
+    if (!isAuthenticated) {
+      hydrateProjects(loadLocalProjects());
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
     try {
       const response = await projectsApi.getAll({ limit: 50 });
       if (response.success && response.data?.projects) {
-        setProjects(response.data.projects);
-
-        const storedProjectId = authStorage.getCurrentProjectId();
-        const storedProject = storedProjectId
-          ? response.data.projects.find((project) => project._id === storedProjectId)
-          : null;
-
-        if (!currentProject && response.data.projects.length > 0) {
-          setCurrentProject(storedProject || response.data.projects[0]);
-        }
+        const localProjects = loadLocalProjects().filter((project) => isLocalProjectId(project._id));
+        const mergedProjects = [...localProjects, ...response.data.projects];
+        saveLocalProjects(mergedProjects);
+        hydrateProjects(mergedProjects);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load projects';
+      const localProjects = loadLocalProjects();
+      if (localProjects.length > 0) {
+        hydrateProjects(localProjects);
+        return;
+      }
       setError(message);
     } finally {
       setIsLoading(false);
@@ -144,16 +218,25 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const response = await projectsApi.create(data);
       if (response.success && response.data?.project) {
         const newProject = response.data.project;
-        setProjects((prev) => [newProject, ...prev]);
+        setProjects((prev) => {
+          const next = [newProject, ...prev.filter((project) => project._id !== newProject._id)];
+          saveLocalProjects(next);
+          return next;
+        });
         setCurrentProject(newProject);
         return newProject;
       } else {
         throw new Error(response.error || 'Failed to create project');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create project';
-      setError(message);
-      throw err;
+      const localProject = buildLocalProject(data);
+      setProjects((prev) => {
+        const next = [localProject, ...prev];
+        saveLocalProjects(next);
+        return next;
+      });
+      setCurrentProject(localProject);
+      return localProject;
     } finally {
       setIsLoading(false);
     }
@@ -164,12 +247,30 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     setError(null);
     try {
+      if (isLocalProjectId(id)) {
+        const localMatch = projects.find((project) => project._id === id);
+        if (!localMatch) {
+          throw new Error('Project not found');
+        }
+        const updatedLocal = { ...localMatch, ...data, updatedAt: new Date().toISOString() };
+        setProjects((prev) => {
+          const next = prev.map((project) => (project._id === id ? updatedLocal : project));
+          saveLocalProjects(next);
+          return next;
+        });
+        if (currentProject?._id === id) {
+          setCurrentProjectState(updatedLocal);
+        }
+        return updatedLocal;
+      }
       const response = await projectsApi.update(id, data);
       if (response.success && response.data?.project) {
         const updatedProject = response.data.project;
-        setProjects((prev) =>
-          prev.map((p) => (p._id === id ? updatedProject : p))
-        );
+        setProjects((prev) => {
+          const next = prev.map((project) => (project._id === id ? updatedProject : project));
+          saveLocalProjects(next);
+          return next;
+        });
         if (currentProject?._id === id) {
           setCurrentProjectState(updatedProject);
         }
@@ -178,30 +279,63 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error(response.error || 'Failed to update project');
       }
     } catch (err) {
+      const localMatch = projects.find((project) => project._id === id);
+      if (localMatch) {
+        const updatedLocal = { ...localMatch, ...data, updatedAt: new Date().toISOString() };
+        setProjects((prev) => {
+          const next = prev.map((project) => (project._id === id ? updatedLocal : project));
+          saveLocalProjects(next);
+          return next;
+        });
+        if (currentProject?._id === id) {
+          setCurrentProjectState(updatedLocal);
+        }
+        return updatedLocal;
+      }
       const message = err instanceof Error ? err.message : 'Failed to update project';
       setError(message);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [currentProject?._id]);
+  }, [currentProject?._id, projects]);
 
   // Delete project
   const deleteProject = useCallback(async (id: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await projectsApi.delete(id);
-      if (response.success) {
-        setProjects((prev) => prev.filter((p) => p._id !== id));
+      const removeProjectState = () => {
+        const remaining = projects.filter((project) => project._id !== id);
+        setProjects(remaining);
+        saveLocalProjects(remaining);
         if (currentProject?._id === id) {
-          const remaining = projects.filter((p) => p._id !== id);
           setCurrentProject(remaining.length > 0 ? remaining[0] : null);
         }
+      };
+
+      if (isLocalProjectId(id)) {
+        removeProjectState();
+        return;
+      }
+
+      const response = await projectsApi.delete(id);
+      if (response.success) {
+        removeProjectState();
       } else {
         throw new Error(response.error || 'Failed to delete project');
       }
     } catch (err) {
+      const localMatch = projects.find((project) => project._id === id);
+      if (localMatch) {
+        const remaining = projects.filter((project) => project._id !== id);
+        setProjects(remaining);
+        saveLocalProjects(remaining);
+        if (currentProject?._id === id) {
+          setCurrentProject(remaining.length > 0 ? remaining[0] : null);
+        }
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Failed to delete project';
       setError(message);
       throw err;
@@ -222,7 +356,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [currentProject?._id, isAuthenticated, syncAllStores]);
 
   useEffect(() => {
-    if (!currentProject?._id || !isAuthenticated) {
+    if (!currentProject?._id || !isAuthenticated || isLocalProjectId(currentProject._id)) {
       return () => undefined;
     }
 

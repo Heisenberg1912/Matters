@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import PageLayout from "@/components/page-layout";
 import ProgressRing from "@/components/progress-ring";
@@ -10,6 +11,7 @@ import { useProject } from "@/context/ProjectContext";
 
 export default function Budget() {
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentProject } = useProject();
   const categories = useBudgetStore((state) => state.categories);
   const expenses = useBudgetStore((state) => state.expenses);
@@ -17,6 +19,14 @@ export default function Budget() {
   const totalSpent = useBudgetStore((state) => state.getTotalSpent());
   const percentSpent = useBudgetStore((state) => state.getPercentSpent());
   const budgetError = useBudgetStore((state) => state.error);
+
+  useEffect(() => {
+    if (searchParams.get("quickAdd") !== "expense") return;
+    setExpenseFormOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("quickAdd");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   return (
     <PageLayout

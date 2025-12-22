@@ -29,6 +29,7 @@ export default function HireContractor() {
   const { user } = useAuth();
   const { currentProject } = useProject();
   const inviteMember = useTeamStore((state) => state.inviteMember);
+  const addMember = useTeamStore((state) => state.addMember);
   const fetchTeamMembers = useTeamStore((state) => state.fetchTeamMembers);
 
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
@@ -103,7 +104,16 @@ export default function HireContractor() {
       await fetchTeamMembers(currentProject._id);
       showToast({ type: "success", message: `Invite sent to ${contractor.name}` });
     } catch (err) {
-      showToast({ type: "error", message: "Failed to send invite" });
+      await addMember({
+        name: contractor.name,
+        role: "worker",
+        email: contractor.email || "",
+        phone: contractor.phone || "",
+        department: "Contractor",
+        joinDate: new Date().toISOString().split("T")[0],
+        status: "active",
+      });
+      showToast({ type: "info", message: "Invite failed, added locally" });
     } finally {
       setSubmittingId(null);
     }

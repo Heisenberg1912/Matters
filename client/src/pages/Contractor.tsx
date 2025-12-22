@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageLayout from "@/components/page-layout";
@@ -35,6 +36,7 @@ export default function Contractor() {
   const teamError = useTeamStore((state) => state.error);
   const fetchTeamMembers = useTeamStore((state) => state.fetchTeamMembers);
   const inviteMember = useTeamStore((state) => state.inviteMember);
+  const addMember = useTeamStore((state) => state.addMember);
 
   const phases = useScheduleStore((state) => state.phases);
   const getTasksByStatus = useScheduleStore((state) => state.getTasksByStatus);
@@ -42,7 +44,16 @@ export default function Contractor() {
 
   const [selectedContractorId, setSelectedContractorId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email: "", role: "worker" });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [inviteForm, setInviteForm] = useState({ name: "", email: "", role: "worker" });
+
+  useEffect(() => {
+    if (searchParams.get("quickAdd") !== "contractor") return;
+    setIsInviteOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("quickAdd");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (currentProject?._id) {
@@ -117,20 +128,46 @@ export default function Contractor() {
       showToast({ type: "warning", message: "Select a project first" });
       return;
     }
-    if (!inviteForm.email.trim()) {
-      showToast({ type: "error", message: "Email is required" });
+    if (!inviteForm.name.trim() && !inviteForm.email.trim()) {
+      showToast({ type: "error", message: "Name or email is required" });
       return;
     }
+    const normalizedRole = ["manager", "supervisor", "worker", "viewer"].includes(inviteForm.role)
+      ? inviteForm.role
+      : "worker";
     try {
-      const normalizedRole = ["manager", "supervisor", "worker", "viewer"].includes(inviteForm.role)
-        ? inviteForm.role
-        : "worker";
-      await inviteMember(currentProject._id, inviteForm.email.trim(), normalizedRole);
-      showToast({ type: "success", message: "Invitation sent" });
-      setInviteForm({ email: "", role: "worker" });
+      const displayName = inviteForm.name.trim()
+        || inviteForm.email.trim().split("@")[0]
+        || "Contractor";
+
+      if (inviteForm.email.trim()) {
+        await inviteMember(currentProject._id, inviteForm.email.trim(), normalizedRole);
+        showToast({ type: "success", message: "Invitation sent" });
+      } else {
+        await addMember({
+          name: displayName,
+          role: normalizedRole,
+          email: "",
+          phone: "",
+          department: normalizedRole,
+          joinDate: new Date().toISOString().split("T")[0],
+          status: "active",
+        });
+        showToast({ type: "success", message: "Contractor added" });
+      }
+      setInviteForm({ name: "", email: "", role: "worker" });
       setIsInviteOpen(false);
     } catch (error) {
-      showToast({ type: "error", message: "Failed to invite contractor" });
+      await addMember({
+        name: inviteForm.name.trim() || "Contractor",
+        role: normalizedRole,
+        email: inviteForm.email.trim(),
+        phone: "",
+        department: normalizedRole,
+        joinDate: new Date().toISOString().split("T")[0],
+        status: "active",
+      });
+      showToast({ type: "info", message: "Invite failed, added locally" });
     }
   };
 
@@ -141,11 +178,20 @@ export default function Contractor() {
         <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Invite contractor</DialogTitle>
+              <DialogTitle>Add contractor</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-semibold text-white">Email</label>
+                <label className="text-sm font-semibold text-white">Name</label>
+                <input
+                  value={inviteForm.name}
+                  onChange={(event) => setInviteForm((prev) => ({ ...prev, name: event.target.value }))}
+                  className="mt-2 w-full rounded-2xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-base text-white outline-none focus:border-[#cfe0ad]"
+                  placeholder="Contractor name"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-white">Email (optional)</label>
                 <input
                   value={inviteForm.email}
                   onChange={(event) => setInviteForm((prev) => ({ ...prev, email: event.target.value }))}

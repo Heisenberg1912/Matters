@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageLayout from "@/components/page-layout";
 import { Card } from "@/components/ui/card";
@@ -48,6 +49,7 @@ export default function Schedule() {
   const teamMembers = useTeamStore((state) => state.members);
 
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [taskForm, setTaskForm] = useState({
     name: "",
     phaseId: "",
@@ -63,7 +65,7 @@ export default function Schedule() {
     }
   }, [currentProject?._id, fetchScheduleData]);
 
-  const handleAddTaskClick = () => {
+  const handleAddTaskClick = useCallback(() => {
     if (!currentProject?._id) {
       showToast({ type: "warning", message: "Select a project first" });
       return;
@@ -81,7 +83,15 @@ export default function Schedule() {
       description: "",
     });
     setIsAddTaskOpen(true);
-  };
+  }, [currentProject?._id, phases, showToast]);
+
+  useEffect(() => {
+    if (searchParams.get("quickAdd") !== "task") return;
+    handleAddTaskClick();
+    const next = new URLSearchParams(searchParams);
+    next.delete("quickAdd");
+    setSearchParams(next, { replace: true });
+  }, [handleAddTaskClick, searchParams, setSearchParams]);
 
   const handleSaveTask = async () => {
     if (!taskForm.name.trim() || !taskForm.phaseId) {
@@ -247,7 +257,6 @@ export default function Schedule() {
     <PageLayout
       title="Project Schedule"
       extras={addTaskDialog}
-      contentClassName="px-4 xs:px-5 sm:px-6 md:px-10 lg:px-24"
     >
       <div className="mx-auto w-full max-w-6xl">
         {!currentProject && (

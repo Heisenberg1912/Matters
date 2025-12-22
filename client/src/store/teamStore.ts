@@ -93,6 +93,10 @@ export const useTeamStore = create<TeamStore>()(
         try {
           const response = await projectsApi.addTeamMember(projectId, { email, role });
 
+          if (!response.success) {
+            throw new Error(response.error || 'Failed to invite team member');
+          }
+
           if (response.success && response.data?.member) {
             const newMember = mapApiTeamMember(response.data.member);
             set((state) => ({

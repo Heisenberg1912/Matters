@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import PageLayout from "@/components/page-layout";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 export default function Inventory() {
   const [itemFormOpen, setItemFormOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentProject } = useProject();
   const selectedCategory = useInventoryStore((state) => state.selectedCategory);
   const setSelectedCategory = useInventoryStore((state) => state.setSelectedCategory);
@@ -36,6 +38,14 @@ export default function Inventory() {
     const cats = new Set(allItems.map((item) => item.category));
     return ["All", ...Array.from(cats).sort()];
   }, [allItems]);
+
+  useEffect(() => {
+    if (searchParams.get("quickAdd") !== "inventory") return;
+    setItemFormOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("quickAdd");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   return (
     <PageLayout

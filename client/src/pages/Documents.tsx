@@ -1,4 +1,6 @@
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import PageLayout from "@/components/page-layout";
 import { FileUploader } from "@/components/file-uploader";
 import { Card } from "@/components/ui/card";
@@ -6,6 +8,7 @@ import { FileText, FileCheck, Receipt, BadgeCheck, FileBarChart, Camera, File, D
 import { useDocumentStore } from "@/store";
 import { staggerContainer, listItem } from "@/lib/animations";
 import { useProject } from "@/context/ProjectContext";
+import { useNotifications } from "@/hooks/use-notifications";
 
 const folderIcons = {
   Plans: FileText,
@@ -17,7 +20,10 @@ const folderIcons = {
 };
 
 export default function Documents() {
+  const uploadRef = useRef<HTMLDivElement | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentProject } = useProject();
+  const { showToast } = useNotifications();
   const folders = useDocumentStore((state) => state.folders);
   const documents = useDocumentStore((state) => state.documents);
   const selectedFolder = useDocumentStore((state) => state.selectedFolder);
@@ -26,6 +32,21 @@ export default function Documents() {
   const recentDocuments = useDocumentStore((state) => state.getRecentDocuments());
   const uploadDocument = useDocumentStore((state) => state.uploadDocument);
   const docError = useDocumentStore((state) => state.error);
+
+  useEffect(() => {
+    if (searchParams.get("quickAdd") !== "document") return;
+    setSelectedFolder(null);
+    if (!currentProject) {
+      showToast({ type: "warning", message: "Select a project first" });
+    } else {
+      requestAnimationFrame(() => {
+        uploadRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("quickAdd");
+    setSearchParams(next, { replace: true });
+  }, [currentProject, searchParams, setSearchParams, setSelectedFolder, showToast]);
 
   const displayedDocuments = selectedFolder
     ? documents.filter(d => d.folder === selectedFolder)
@@ -85,7 +106,7 @@ export default function Documents() {
       </section>
 
       {/* Folders */}
-      <section className="mt-6 xs:mt-8 sm:mt-12 md:mt-20">
+      <section ref={uploadRef} className="mt-6 xs:mt-8 sm:mt-12 md:mt-20">
         <div className="flex items-center justify-between">
           <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">Folders</h2>
           {selectedFolder && (

@@ -7,12 +7,12 @@ import SideMenu from "@/components/side-menu";
 import ProgressRing from "@/components/progress-ring";
 import { Fab } from "@/components/fab";
 import NotificationsSheet from "@/components/notifications-sheet";
+import QuickAddSheet from "@/components/quick-add-sheet";
 import { Card } from "@/components/ui/card";
 import { Sheet } from "@/components/ui/sheet";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useSwipe } from "@/hooks/use-swipe";
-import { useAuth } from "@/context/AuthContext";
 import { useProject } from "@/context/ProjectContext";
 import { useBudgetStore, useScheduleStore, useTeamStore } from "@/store";
 import {
@@ -39,29 +39,90 @@ import {
   Package
 } from "lucide-react";
 
-import stageImg from "../assets/placeholders/stage-ideation.png";
+import ideationMedal from "../assets/placeholders/medals/ideation.png";
+import surveyMedal from "../assets/placeholders/medals/survey.png";
+import planningMedal from "../assets/placeholders/medals/planning.png";
+import procurementMedal from "../assets/placeholders/medals/procurement.png";
+import foundationMedal from "../assets/placeholders/medals/foundation.png";
+import structuralMedal from "../assets/placeholders/medals/structural.png";
+import enclosureMedal from "../assets/placeholders/medals/enclosure.png";
+import mepMedal from "../assets/placeholders/medals/mep.png";
+import finishingMedal from "../assets/placeholders/medals/finishing.png";
 import insightWeather from "../assets/placeholders/insight-weather.png";
 import insightFact from "../assets/placeholders/insight-fact.png";
 import resourceOne from "../assets/placeholders/resource-1.jpg";
 import resourceTwo from "../assets/placeholders/resource-2.jpg";
 import resourceThree from "../assets/placeholders/resource-3.jpg";
+import resourceFour from "../assets/placeholders/resource-4.jpg";
+import resourceFive from "../assets/placeholders/resource-5.jpg";
+import resourceSix from "../assets/placeholders/resource-6.jpg";
 
-const stageSlides = [
+type StageSlide = {
+  title: string;
+  copy: string;
+  image: string;
+  progress?: number;
+  taskSummary?: { completed: number; total: number };
+};
+
+const defaultStageSlides: StageSlide[] = [
   {
-    title: "IDEATION STAGE",
-    copy: "App downloaded, project created, category locked.",
-    image: stageImg
+    title: "IDEATION",
+    copy: "Project created, requirements captured, and goals aligned.",
+    image: ideationMedal
   },
   {
-    title: "BUDGET STAGE",
-    copy: "Finalize the bill of quantities so every team shares the same spend plan.",
-    image: stageImg
+    title: "SURVEY",
+    copy: "Site measurements, soil checks, and constraints documented.",
+    image: surveyMedal
   },
   {
-    title: "SITE PREP",
-    copy: "Upload surveys and confirm contractor availability to begin excavation.",
-    image: stageImg
+    title: "PLANNING",
+    copy: "Drawings, scope, and schedule aligned before execution.",
+    image: planningMedal
+  },
+  {
+    title: "PROCUREMENT",
+    copy: "Materials and vendors locked with lead times confirmed.",
+    image: procurementMedal
+  },
+  {
+    title: "FOUNDATION",
+    copy: "Excavation, footing, and base work underway.",
+    image: foundationMedal
+  },
+  {
+    title: "STRUCTURAL",
+    copy: "Columns, beams, and slab progress tracked.",
+    image: structuralMedal
+  },
+  {
+    title: "ENCLOSURE",
+    copy: "Walls, roof, and openings closed for weatherproofing.",
+    image: enclosureMedal
+  },
+  {
+    title: "MEP",
+    copy: "Mechanical, electrical, and plumbing routes coordinated.",
+    image: mepMedal
+  },
+  {
+    title: "FINISHING",
+    copy: "Interiors, fixtures, and final quality checks completed.",
+    image: finishingMedal
   }
+];
+
+const stageMeta = [
+  { keywords: ["ideation"], slide: defaultStageSlides[0] },
+  { keywords: ["survey"], slide: defaultStageSlides[1] },
+  { keywords: ["planning"], slide: defaultStageSlides[2] },
+  { keywords: ["procurement", "purchase"], slide: defaultStageSlides[3] },
+  { keywords: ["foundation"], slide: defaultStageSlides[4] },
+  { keywords: ["structural"], slide: defaultStageSlides[5] },
+  { keywords: ["enclosure", "wall", "roof"], slide: defaultStageSlides[6] },
+  { keywords: ["mep", "mechanical", "electrical", "plumbing", "hvac"], slide: defaultStageSlides[7] },
+  { keywords: ["finish", "finishing", "interior"], slide: defaultStageSlides[8] },
 ];
 
 const insightCards = [
@@ -114,7 +175,7 @@ export default function Home() {
   const [stageIndex, setStageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { user } = useAuth();
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const { currentProject } = useProject();
 
   // Select raw state to avoid infinite loops from calling getters in selectors
@@ -150,6 +211,29 @@ export default function Home() {
   );
 
   const navigate = useNavigate();
+  const scheduleStageSlides = useMemo(() => {
+    if (schedulePhases.length === 0) return [];
+    return schedulePhases.map((phase) => {
+      const matched = stageMeta.find((meta) =>
+        meta.keywords.some((keyword) => phase.name.toLowerCase().includes(keyword))
+      );
+      const totalTasks = phase.tasks.length;
+      const completedTasks = phase.tasks.filter((task) => task.status === "completed").length;
+      const progress = totalTasks > 0
+        ? Math.round((completedTasks / totalTasks) * 100)
+        : phase.progress || 0;
+
+      return {
+        title: matched?.slide.title || phase.name.toUpperCase(),
+        copy: matched?.slide.copy || "Keep this phase on track with consistent updates.",
+        image: matched?.slide.image || planningMedal,
+        progress,
+        taskSummary: { completed: completedTasks, total: totalTasks },
+      };
+    });
+  }, [schedulePhases]);
+
+  const stageSlides = scheduleStageSlides.length > 0 ? scheduleStageSlides : defaultStageSlides;
   const currentStage = stageSlides[stageIndex];
   const { showToast } = useNotifications();
   const progressPercent = currentProject?.progress?.percentage ?? overallProgress;
@@ -203,6 +287,17 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (scheduleStageSlides.length === 0) return;
+    const activeIndex = scheduleStageSlides.findIndex((stage) => (stage.progress ?? 0) < 100);
+    setStageIndex(activeIndex >= 0 ? activeIndex : 0);
+  }, [scheduleStageSlides]);
+
+  useEffect(() => {
+    if (stageSlides.length === 0) return;
+    setStageIndex((prev) => Math.min(prev, stageSlides.length - 1));
+  }, [stageSlides.length]);
+
 
   const { bind: swipeStage } = useSwipe({
     onSwipedLeft: () => cycleStage(1),
@@ -228,9 +323,9 @@ export default function Home() {
       { title: "Plans + Drawings", img: resourceOne, onClick: () => navigate("/plans-drawings") },
       { title: "Site Details", img: resourceTwo, onClick: () => navigate("/site-details") },
       { title: "Contractor Chat", img: resourceThree, onClick: () => navigate("/contractor-chat") },
-      { title: "Site Gallery", img: resourceTwo, onClick: () => navigate("/site-gallery") },
-      { title: "Schedule", img: resourceOne, onClick: () => navigate("/schedule") },
-      { title: "Customer Care", img: resourceThree, onClick: () => navigate("/customer-care") }
+      { title: "Site Gallery", img: resourceFour, onClick: () => navigate("/site-gallery") },
+      { title: "Schedule", img: resourceFive, onClick: () => navigate("/schedule") },
+      { title: "Customer Care", img: resourceSix, onClick: () => navigate("/customer-care") }
     ],
     [navigate]
   );
@@ -372,6 +467,14 @@ export default function Home() {
                         </div>
 
                         <p className="mt-2 xs:mt-3 sm:mt-4 md:mt-6 text-center text-xs xs:text-sm sm:text-base md:text-lg text-[#cacaca]">{currentStage.copy}</p>
+                        {currentStage.progress !== undefined && (
+                          <div className="mt-2 xs:mt-3 flex items-center justify-center gap-2 text-[0.6rem] xs:text-xs sm:text-sm text-[#8a8a8a]">
+                            <span>{currentStage.progress}% complete</span>
+                            {currentStage.taskSummary && currentStage.taskSummary.total > 0 && (
+                              <span>{currentStage.taskSummary.completed}/{currentStage.taskSummary.total} tasks</span>
+                            )}
+                          </div>
+                        )}
 
                         <div className="mt-4 xs:mt-5 sm:mt-8 md:mt-10 flex flex-1 items-center justify-center">
                           {currentStage.image ? (
@@ -549,9 +652,10 @@ export default function Home() {
             </div>
           </div>
 
-          <Fab label="Quick add" onClick={() => showToast({ type: "info", message: "Quick action", description: "Add a new update" })}>
+          <Fab label="Quick add" onClick={() => setQuickAddOpen(true)}>
             +
           </Fab>
+          <QuickAddSheet open={quickAddOpen} onOpenChange={setQuickAddOpen} />
           <BottomNav />
         </div>
 
