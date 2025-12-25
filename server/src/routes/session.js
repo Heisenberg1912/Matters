@@ -343,7 +343,7 @@ router.post('/forgot-password', async (req, res) => {
     console.log('- Expires at:', expiresAt);
 
     // Create reset URL (use frontend URL in production)
-    const frontendUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const frontendUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     // Send password reset email
