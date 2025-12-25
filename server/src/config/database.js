@@ -53,8 +53,11 @@ const connectDB = async () => {
     const options = {
       dbName: process.env.MONGO_DBNAME || process.env.MONGODB_DB || 'matters',
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
+      family: 4, // Use IPv4, skip trying IPv6
+      retryWrites: true,
+      retryReads: true,
     };
 
     state.promise = mongoose.connect(mongoURI, options).then((conn) => {

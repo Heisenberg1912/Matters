@@ -78,6 +78,8 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log('Login attempt:', { email, passwordLength: password?.length });
+
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -89,6 +91,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
 
     if (!user) {
+      console.log('User not found:', email);
       return res.status(401).json({
         success: false,
         error: 'Invalid email or password.',
@@ -96,6 +99,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user.isActive) {
+      console.log('User inactive:', email);
       return res.status(401).json({
         success: false,
         error: 'Account is disabled. Please contact support.',
@@ -104,6 +108,7 @@ router.post('/login', async (req, res) => {
 
     // Check password
     const isMatch = await user.comparePassword(password);
+    console.log('Password match:', isMatch);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
