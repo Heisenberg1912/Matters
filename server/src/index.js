@@ -14,8 +14,21 @@ const ensureDbConnection = async () => {
 
 // For Vercel serverless - export handler
 export default async function handler(req, res) {
-  await ensureDbConnection();
-  return app(req, res);
+  try {
+    await ensureDbConnection();
+    return app(req, res);
+  } catch (error) {
+    console.error('Handler error:', error);
+    return res.status(500).json({
+      error: 'Server initialization failed',
+      message: error.message,
+      env: {
+        hasMongoUri: !!process.env.MONGODB_URI,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        nodeEnv: process.env.NODE_ENV
+      }
+    });
+  }
 }
 
 // For local development - start server with app.listen()
