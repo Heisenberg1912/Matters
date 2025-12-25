@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import PageLayout from "@/components/page-layout";
 import { FileUploader } from "@/components/file-uploader";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { FileText, FileCheck, Receipt, BadgeCheck, FileBarChart, Camera, File, Download } from "lucide-react";
 import { useDocumentStore } from "@/store";
 import { staggerContainer, listItem } from "@/lib/animations";
@@ -28,10 +28,14 @@ export default function Documents() {
   const documents = useDocumentStore((state) => state.documents);
   const selectedFolder = useDocumentStore((state) => state.selectedFolder);
   const setSelectedFolder = useDocumentStore((state) => state.setSelectedFolder);
-  const totalSize = useDocumentStore((state) => state.getTotalSize());
-  const recentDocuments = useDocumentStore((state) => state.getRecentDocuments());
   const uploadDocument = useDocumentStore((state) => state.uploadDocument);
   const docError = useDocumentStore((state) => state.error);
+
+  // Compute derived values directly from documents to avoid infinite loops
+  const totalSize = documents.reduce((sum, doc) => sum + doc.size, 0);
+  const recentDocuments = [...documents]
+    .sort((a, b) => b.uploadDate.localeCompare(a.uploadDate))
+    .slice(0, 5);
 
   useEffect(() => {
     if (searchParams.get("quickAdd") !== "document") return;
@@ -59,165 +63,221 @@ export default function Documents() {
   };
 
   return (
-    <PageLayout title="Documents & Files">
-      {/* Document Stats */}
-      <section className="mt-4 xs:mt-6 sm:mt-10 md:mt-16">
-        <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">Document Overview</h2>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-24">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Documents & Files</h1>
+            <p className="text-gray-400 mt-1">Manage your project documents and files</p>
+            {currentProject && (
+              <p className="text-sm text-blue-400 mt-2">
+                Project: <span className="font-semibold">{currentProject.name}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Alert Messages */}
         {!currentProject && (
-          <Card className="mt-4 border border-[#242424] bg-[#101010] p-4 text-sm xs:text-base text-[#bdbdbd]">
-            Select or create a project to manage documents.
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+              <p className="text-blue-300">Select or create a project to manage documents.</p>
+            </Card>
+          </motion.div>
         )}
         {docError && (
-          <Card className="mt-4 border border-red-500/40 bg-red-500/10 p-4 text-sm xs:text-base text-red-200">
-            {docError}
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="p-4 bg-red-500/10 border-red-500/20">
+              <p className="text-red-300">{docError}</p>
+            </Card>
+          </motion.div>
         )}
+
+        {/* Document Stats */}
         <motion.div
-          className="mt-3 xs:mt-4 sm:mt-6 md:mt-8 grid grid-cols-1 gap-3 xs:gap-4 sm:gap-6 sm:grid-cols-3"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
         >
-          <motion.div variants={listItem}>
-            <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] sm:rounded-[38px] md:rounded-[46px] border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-4 xs:p-6 sm:p-8 md:p-10">
-              <File className="h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-[#cfe0ad]" strokeWidth={1.5} />
-              <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6 text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black text-white">{documents.length}</div>
-              <p className="mt-1 xs:mt-2 text-sm xs:text-base sm:text-lg md:text-xl text-[#b9b9b9]">Total Documents</p>
-            </Card>
-          </motion.div>
+          <Card className="p-5 bg-gray-800/50 border-gray-700 border-l-4 border-l-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 font-medium">Total Documents</p>
+                <p className="text-2xl font-bold text-white mt-1">{documents.length}</p>
+              </div>
+              <div className="bg-blue-500/20 p-3 rounded-lg">
+                <File className="w-6 h-6 text-blue-400" />
+              </div>
+            </div>
+          </Card>
 
-          <motion.div variants={listItem}>
-            <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] sm:rounded-[38px] md:rounded-[46px] border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-4 xs:p-6 sm:p-8 md:p-10">
-              <div className="text-[0.55rem] xs:text-[0.6rem] sm:text-xs md:text-sm uppercase tracking-[0.2em] xs:tracking-[0.3em] sm:tracking-[0.4em] text-[#bdbdbd]">Storage</div>
-              <div className="mt-2 xs:mt-3 sm:mt-4 text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-black text-[#b8d4f1]">{(totalSize / (1024 * 1024)).toFixed(0)} MB</div>
-              <p className="mt-1 xs:mt-2 text-xs xs:text-sm sm:text-base md:text-lg text-[#b9b9b9]">Used</p>
-            </Card>
-          </motion.div>
+          <Card className="p-5 bg-gray-800/50 border-gray-700 border-l-4 border-l-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 font-medium">Storage Used</p>
+                <p className="text-2xl font-bold text-white mt-1">{(totalSize / (1024 * 1024)).toFixed(0)} MB</p>
+              </div>
+              <div className="bg-green-500/20 p-3 rounded-lg">
+                <FileText className="w-6 h-6 text-green-400" />
+              </div>
+            </div>
+          </Card>
 
-          <motion.div variants={listItem}>
-            <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[30px] sm:rounded-[38px] md:rounded-[46px] border border-[#242424] bg-gradient-to-b from-[#161616] to-[#070707] p-4 xs:p-6 sm:p-8 md:p-10">
-              <Camera className="h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-[#f3c5a8]" strokeWidth={1.5} />
-              <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6 text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black text-white">{folders.length}</div>
-              <p className="mt-1 xs:mt-2 text-sm xs:text-base sm:text-lg md:text-xl text-[#b9b9b9]">Folders</p>
-            </Card>
-          </motion.div>
+          <Card className="p-5 bg-gray-800/50 border-gray-700 border-l-4 border-l-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 font-medium">Folders</p>
+                <p className="text-2xl font-bold text-white mt-1">{folders.length}</p>
+              </div>
+              <div className="bg-purple-500/20 p-3 rounded-lg">
+                <Camera className="w-6 h-6 text-purple-400" />
+              </div>
+            </div>
+          </Card>
         </motion.div>
-      </section>
 
-      {/* Folders */}
-      <section ref={uploadRef} className="mt-6 xs:mt-8 sm:mt-12 md:mt-20">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">Folders</h2>
-          {selectedFolder && (
-            <button
-              onClick={() => setSelectedFolder(null)}
-              className="text-sm xs:text-base sm:text-lg text-[#cfe0ad] hover:underline touch-target focus-ring"
-            >
-              ← Back to all folders
-            </button>
-          )}
-        </div>
-        <motion.div
-          className="mt-3 xs:mt-4 sm:mt-6 md:mt-8 grid grid-cols-2 gap-3 xs:gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-        >
-          {folders.map((folder) => {
-            const Icon = folderIcons[folder.name as keyof typeof folderIcons] || File;
-            return (
-              <motion.div key={folder.id} variants={listItem}>
-                <button
-                  onClick={() => setSelectedFolder(folder.name)}
-                  className="w-full touch-target focus-ring rounded-[20px] xs:rounded-[28px] sm:rounded-[34px]"
-                >
-                  <Card className="flex flex-col items-center justify-center rounded-[20px] xs:rounded-[28px] sm:rounded-[34px] border border-[#2a2a2a] bg-[#101010] p-4 xs:p-6 sm:p-8 transition hover:border-[#cfe0ad] hover:scale-[1.02]">
-                    <Icon className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-[#cfe0ad]" strokeWidth={1.5} />
-                    <h3 className="mt-2 xs:mt-3 sm:mt-4 text-sm xs:text-base sm:text-lg md:text-xl font-semibold text-white">{folder.name}</h3>
-                    <p className="mt-1 xs:mt-2 text-[0.65rem] xs:text-xs sm:text-sm text-[#8a8a8a]">{folder.documentCount} files</p>
-                  </Card>
-                </button>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </section>
-
-      {/* Documents List */}
-      <section className="mt-6 xs:mt-8 sm:mt-12 md:mt-20">
-        <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">
-          {selectedFolder ? `${selectedFolder} Files` : 'Recent Documents'}
-        </h2>
-        <motion.div
-          className="mt-3 xs:mt-4 sm:mt-6 md:mt-8 space-y-3 xs:space-y-4"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-        >
-          {displayedDocuments.map((doc) => (
-            <motion.div key={doc.id} variants={listItem}>
-              <Card className="border border-[#2a2a2a] bg-[#101010] p-3 xs:p-4 sm:p-6 md:p-8 transition hover:border-[#3a3a3a]">
-                <div className="flex items-center justify-between gap-3 xs:gap-4">
-                  <div className="flex items-center gap-2 xs:gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="flex h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 items-center justify-center rounded-lg bg-[#cfe0ad]/10 shrink-0">
-                      <File className="h-5 w-5 xs:h-6 xs:w-6 text-[#cfe0ad]" />
+        {/* Folders */}
+        <section ref={uploadRef} className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">Folders</h2>
+            {selectedFolder && (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedFolder(null)}
+                className="flex items-center gap-2 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                ← Back to all folders
+              </Button>
+            )}
+          </div>
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            {folders.map((folder) => {
+              const Icon = folderIcons[folder.name as keyof typeof folderIcons] || File;
+              return (
+                <motion.div key={folder.id} variants={listItem}>
+                  <Card
+                    className="cursor-pointer bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 hover:border-blue-500 transition-all"
+                    onClick={() => setSelectedFolder(folder.name)}
+                  >
+                    <div className="p-6 flex flex-col items-center text-center">
+                      <div className="bg-blue-500/20 p-4 rounded-lg mb-4">
+                        <Icon className="h-8 w-8 text-blue-400" strokeWidth={1.5} />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-1">{folder.name}</h3>
+                      <p className="text-sm text-gray-400">{folder.documentCount} files</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm xs:text-base sm:text-lg md:text-xl font-semibold text-white truncate">{doc.name}</h3>
-                      <div className="mt-0.5 xs:mt-1 flex flex-wrap items-center gap-1 xs:gap-2 sm:gap-4 text-[0.6rem] xs:text-xs sm:text-sm text-[#8a8a8a]">
-                        <span>{doc.folder}</span>
-                        <span className="hidden xs:inline">•</span>
-                        <span>{formatFileSize(doc.size)}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span className="hidden sm:inline">{doc.uploadDate}</span>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </section>
+
+        {/* Documents List */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6">
+            {selectedFolder ? `${selectedFolder} Files` : 'Recent Documents'}
+          </h2>
+          {displayedDocuments.length === 0 ? (
+            <Card className="p-8 text-center bg-gray-800/50 border-gray-700">
+              <File className="w-16 h-16 mx-auto text-gray-600 mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No Documents Yet</h3>
+              <p className="text-gray-400">Upload your first document to get started</p>
+            </Card>
+          ) : (
+            <motion.div
+              className="space-y-4"
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+            >
+              {displayedDocuments.map((doc) => (
+                <motion.div key={doc.id} variants={listItem}>
+                  <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 hover:border-gray-600 transition-all">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="bg-blue-500/20 p-3 rounded-lg shrink-0">
+                            <File className="h-6 w-6 text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-white truncate">{doc.name}</h3>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-400">
+                              <span className="px-2 py-1 bg-gray-700/50 rounded-full text-xs">{doc.folder}</span>
+                              <span>•</span>
+                              <span>{formatFileSize(doc.size)}</span>
+                              <span>•</span>
+                              <span>{doc.uploadDate}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                  <button className="flex h-10 w-10 xs:h-12 xs:w-12 items-center justify-center rounded-lg border border-[#2a2a2a] hover:border-[#cfe0ad] transition shrink-0 touch-target focus-ring">
-                    <Download className="h-4 w-4 xs:h-5 xs:w-5 text-white" />
-                  </button>
-                </div>
-              </Card>
+                  </Card>
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
-        </motion.div>
-      </section>
+          )}
+        </section>
 
-      {/* Upload Section */}
-      <section className="mt-6 xs:mt-8 sm:mt-12 md:mt-20">
-        <button
-          type="button"
-          className="flex h-[100px] xs:h-[120px] sm:h-[150px] md:h-[180px] lg:h-[200px] w-full items-center justify-center rounded-[20px] xs:rounded-[30px] sm:rounded-[40px] md:rounded-[50px] border-2 border-dashed border-[#2a2a2a] bg-[#111] text-base xs:text-lg sm:text-xl md:text-2xl text-white transition hover:border-[#3a3a3a] touch-target focus-ring"
-          onClick={() => setSelectedFolder(null)}
-        >
-          <span className="flex items-center gap-2 xs:gap-3 sm:gap-4">
-            <span className="flex h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-full border border-[#3a3a3a] text-2xl xs:text-3xl sm:text-4xl">+</span>
-            <span className="hidden xs:inline">Upload New Document</span>
-            <span className="xs:hidden">Upload</span>
-          </span>
-        </button>
-        {currentProject && (
-          <div className="mt-4 xs:mt-6">
-            <FileUploader
-              accept={[
-                "application/pdf",
-                "image/*",
-                "application/vnd.ms-excel",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              ]}
-              maxSize={15 * 1024 * 1024}
-              helperText="Upload plans, reports, or invoices (max 15MB)"
-              onUpload={async (files) => {
-                const folder = selectedFolder || "Documents";
-                await Promise.all(
-                  files.map((file) => uploadDocument(currentProject._id, file, folder))
-                );
-              }}
-            />
-          </div>
-        )}
-      </section>
-    </PageLayout>
+        {/* Upload Section */}
+        <section>
+          <h2 className="text-2xl font-bold text-white mb-6">Upload Documents</h2>
+          {currentProject ? (
+            <Card className="p-8 bg-gray-800/50 border-gray-700">
+              <FileUploader
+                accept={[
+                  "application/pdf",
+                  "image/*",
+                  "application/vnd.ms-excel",
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ]}
+                maxSize={15 * 1024 * 1024}
+                helperText="Upload plans, reports, or invoices (max 15MB)"
+                onUpload={async (files) => {
+                  const folder = selectedFolder || "Documents";
+                  await Promise.all(
+                    files.map((file) => uploadDocument(currentProject._id, file, folder))
+                  );
+                }}
+              />
+            </Card>
+          ) : (
+            <Card className="p-8 text-center bg-blue-500/10 border-blue-500/20">
+              <File className="w-16 h-16 mx-auto text-blue-400 mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Select a Project</h3>
+              <p className="text-gray-400">Choose or create a project to start uploading documents</p>
+            </Card>
+          )}
+        </section>
+      </div>
+    </div>
   );
 }

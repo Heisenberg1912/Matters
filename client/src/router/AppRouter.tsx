@@ -23,7 +23,36 @@ import TeamManagement from "@/pages/TeamManagement";
 import Documents from "@/pages/Documents";
 import Reports from "@/pages/Reports";
 import Terms from "@/pages/Terms";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import ProtectedRoute from "@/router/ProtectedRoute";
+
+// Customer pages
+import CustomerDashboard from "@/pages/customer/Dashboard";
+import PostJob from "@/pages/customer/PostJob";
+import ViewBids from "@/pages/customer/ViewBids";
+import ProgressTracking from "@/pages/customer/ProgressTracking";
+import CustomerJobDetails from "@/pages/customer/JobDetails";
+
+// Contractor pages
+import ContractorDashboard from "@/pages/contractor/ContractorDashboard";
+import AvailableJobs from "@/pages/contractor/AvailableJobs";
+import JobDetails from "@/pages/contractor/JobDetails";
+import MyBids from "@/pages/contractor/MyBids";
+import MyAssignments from "@/pages/contractor/MyAssignments";
+import SubmitProgress from "@/pages/contractor/SubmitProgress";
+import Earnings from "@/pages/contractor/Earnings";
+import ContractorProfile from "@/pages/contractor/ContractorProfile";
+
+// Admin pages
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import UserManagement from "@/pages/admin/UserManagement";
+import ProjectOversight from "@/pages/admin/ProjectOversight";
+import ContractorVerification from "@/pages/admin/ContractorVerification";
+import TicketManagement from "@/pages/admin/TicketManagement";
+import SystemAnalytics from "@/pages/admin/SystemAnalytics";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -32,6 +61,10 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Splash />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route
           path="/home"
@@ -187,6 +220,165 @@ function AnimatedRoutes() {
             </ProtectedRoute>
           }
         />
+
+        {/* Customer Routes */}
+        <Route
+          path="/customer/dashboard"
+          element={
+            <ProtectedRoute roles={["user", "admin", "superadmin"]}>
+              <CustomerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/post-job"
+          element={
+            <ProtectedRoute roles={["user", "admin", "superadmin"]}>
+              <PostJob />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/bids"
+          element={
+            <ProtectedRoute roles={["user", "admin", "superadmin"]}>
+              <ViewBids />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/progress"
+          element={
+            <ProtectedRoute roles={["user", "admin", "superadmin"]}>
+              <ProgressTracking />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/jobs/:jobId"
+          element={
+            <ProtectedRoute roles={["user", "admin", "superadmin"]}>
+              <CustomerJobDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Contractor Routes */}
+        <Route
+          path="/contractor/dashboard"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <ContractorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/jobs"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <AvailableJobs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/jobs/:jobId"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <JobDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/bids"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <MyBids />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/assignments"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <MyAssignments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/progress"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <SubmitProgress />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/earnings"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <Earnings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contractor/profile"
+          element={
+            <ProtectedRoute roles={["contractor", "admin", "superadmin"]}>
+              <ContractorProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute roles={["admin", "superadmin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute roles={["admin", "superadmin"]}>
+              <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/projects"
+          element={
+            <ProtectedRoute roles={["admin", "superadmin"]}>
+              <ProjectOversight />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/contractors"
+          element={
+            <ProtectedRoute roles={["admin", "superadmin"]}>
+              <ContractorVerification />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tickets"
+          element={
+            <ProtectedRoute roles={["admin", "superadmin"]}>
+              <TicketManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute roles={["admin", "superadmin"]}>
+              <SystemAnalytics />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="*"
           element={

@@ -35,21 +35,6 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'contractor', 'admin', 'superadmin'],
       default: process.env.DEFAULT_ROLE || 'user',
     },
-    googleId: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
-    clerkId: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
-    authProvider: {
-      type: String,
-      enum: ['local', 'google', 'clerk'],
-      default: 'local',
-    },
     isVerified: {
       type: Boolean,
       default: false,
@@ -79,11 +64,42 @@ const userSchema = new mongoose.Schema(
       name: String,
       address: String,
       license: String,
+      gstin: String,
+      website: String,
     },
     specializations: [String],
     rating: {
       average: { type: Number, default: 0, min: 0, max: 5 },
       count: { type: Number, default: 0 },
+    },
+    contractor: {
+      isVerified: { type: Boolean, default: false },
+      verifiedAt: Date,
+      verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      bio: { type: String, maxlength: 1000 },
+      yearsExperience: { type: Number, min: 0 },
+      portfolioImages: [String],
+      availabilityStatus: {
+        type: String,
+        enum: ['available', 'busy', 'on_leave'],
+        default: 'available',
+      },
+      hourlyRate: { type: Number, min: 0 },
+      dailyRate: { type: Number, min: 0 },
+      completedProjects: { type: Number, default: 0 },
+      activeProjects: { type: Number, default: 0 },
+      totalEarnings: { type: Number, default: 0 },
+      serviceAreas: [{
+        city: String,
+        state: String,
+      }],
+      documents: [{
+        type: { type: String, enum: ['license', 'insurance', 'certification', 'id_proof', 'other'] },
+        name: String,
+        url: String,
+        verified: { type: Boolean, default: false },
+        uploadedAt: { type: Date, default: Date.now },
+      }],
     },
     // Subscription fields
     subscription: {
@@ -134,6 +150,9 @@ const userSchema = new mongoose.Schema(
 
 // Index for faster queries (email and googleId already indexed via unique: true)
 userSchema.index({ role: 1 });
+userSchema.index({ 'contractor.isVerified': 1, role: 1 });
+userSchema.index({ 'contractor.availabilityStatus': 1 });
+userSchema.index({ specializations: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

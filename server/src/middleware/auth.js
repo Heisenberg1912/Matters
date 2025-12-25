@@ -1,60 +1,89 @@
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-const GUEST_EMAIL = process.env.GUEST_USER_EMAIL || 'guest@matters.local';
-const GUEST_NAME = process.env.GUEST_USER_NAME || 'Guest User';
-const GUEST_ROLE = process.env.GUEST_USER_ROLE || 'user';
+const JWT_SECRET = process.env.JWT_SECRET || 'matters-secret-key-change-in-production';
 
-let cachedGuestUser = null;
-
-const getOrCreateGuestUser = async () => {
-  if (cachedGuestUser) {
-    return cachedGuestUser;
-  }
-
-  let user = await User.findOne({ email: GUEST_EMAIL });
-
-  if (!user) {
-    user = await User.create({
-      email: GUEST_EMAIL,
-      name: GUEST_NAME,
-      role: GUEST_ROLE,
-      authProvider: 'local',
-      isVerified: true,
-      isActive: true,
-    });
-  } else if (!user.isActive) {
-    user.isActive = true;
-    await user.save();
-  }
-
-  cachedGuestUser = user;
-  return user;
-};
-
-// Attach a guest user to every request (login is disabled).
+// Authenticate user via JWT token
 export const authenticate = async (req, res, next) => {
   try {
-    const user = await getOrCreateGuestUser();
-    req.user = user;
-    req.userId = user._id;
-    next();
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please log in.',
+        code: 'NO_TOKEN',
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = await User.findById(decoded.userId);
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found.',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({
+          success: false,
+          error: 'Account is disabled.',
+          code: 'ACCOUNT_DISABLED',
+        });
+      }
+
+      req.user = user;
+      req.userId = user._id;
+      next();
+    } catch (jwtError) {
+      if (jwtError.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          error: 'Token expired. Please log in again.',
+          code: 'TOKEN_EXPIRED',
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token.',
+        code: 'INVALID_TOKEN',
+      });
+    }
   } catch (error) {
-    console.error('Guest auth error:', error);
+    console.error('Auth error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to initialize guest session.',
+      error: 'Authentication failed.',
     });
   }
 };
 
-// Optional authentication (always attaches guest user when possible)
+// Optional authentication (attach user if token provided, continue otherwise)
 export const optionalAuth = async (req, res, next) => {
   try {
-    const user = await getOrCreateGuestUser();
-    req.user = user;
-    req.userId = user._id;
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (user && user.isActive) {
+          req.user = user;
+          req.userId = user._id;
+        }
+      } catch {
+        // Token invalid, continue without user
+      }
+    }
   } catch (error) {
-    console.warn('Optional guest auth failed:', error);
+    console.warn('Optional auth failed:', error);
   }
   next();
 };
@@ -112,6 +141,82 @@ export const isSuperAdmin = (req, res, next) => {
     return res.status(403).json({
       success: false,
       error: 'Superadmin access required.',
+    });
+  }
+
+  next();
+};
+
+// Check if user is a contractor
+export const isContractor = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required.',
+    });
+  }
+
+  if (req.user.role !== 'contractor') {
+    return res.status(403).json({
+      success: false,
+      error: 'Contractor access required.',
+    });
+  }
+
+  next();
+};
+
+// Check if user is a customer (regular user)
+export const isCustomer = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required.',
+    });
+  }
+
+  if (req.user.role !== 'user') {
+    return res.status(403).json({
+      success: false,
+      error: 'Customer access required.',
+    });
+  }
+
+  next();
+};
+
+// Check if user is customer or admin
+export const isCustomerOrAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required.',
+    });
+  }
+
+  if (!['user', 'admin', 'superadmin'].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Customer or admin access required.',
+    });
+  }
+
+  next();
+};
+
+// Check if user is contractor or admin
+export const isContractorOrAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required.',
+    });
+  }
+
+  if (!['contractor', 'admin', 'superadmin'].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Contractor or admin access required.',
     });
   }
 

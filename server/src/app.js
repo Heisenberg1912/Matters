@@ -26,6 +26,9 @@ import supportRoutes from './routes/support.js';
 import subscriptionsRoutes from './routes/subscriptions.js';
 import adminRoutes from './routes/admin.js';
 import publicRoutes from './routes/public.js';
+import jobsRoutes from './routes/jobs.js';
+import progressRoutes from './routes/progress.js';
+import contractorDashboardRoutes from './routes/contractor-dashboard.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,7 +38,18 @@ const loadEnv = () => {
     return;
   }
 
-  dotenv.config({ path: join(__dirname, '../..', '.env') });
+  const envPath = join(__dirname, '../..', '.env');
+  console.log('Loading .env from:', envPath);
+  const result = dotenv.config({ path: envPath });
+
+  if (result.error) {
+    console.error('Error loading .env:', result.error);
+  } else {
+    console.log('✅ .env loaded successfully');
+    console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
+  }
+
   process.env.MATTERS_ENV_LOADED = 'true';
 };
 
@@ -101,6 +115,9 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(join(__dirname, '../uploads')));
+
 // Request logging (development)
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
@@ -142,6 +159,9 @@ app.use(`${API_PREFIX}/contractors`, contractorRoutes);
 app.use(`${API_PREFIX}/support`, supportRoutes);
 app.use(`${API_PREFIX}/subscriptions`, subscriptionsRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/jobs`, jobsRoutes);
+app.use(`${API_PREFIX}/progress`, progressRoutes);
+app.use(`${API_PREFIX}/contractor`, contractorDashboardRoutes);
 app.use(`${API_PREFIX}`, publicRoutes); // Public routes (includes /portal and /projects/:id/share)
 
 // Root endpoint

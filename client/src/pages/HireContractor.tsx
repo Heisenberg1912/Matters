@@ -1,9 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageLayout from "@/components/page-layout";
+import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Star, MapPin, Briefcase, ArrowLeft, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Star,
+  MapPin,
+  Briefcase,
+  Search,
+  Filter,
+  Users,
+  Award,
+  CheckCircle,
+  Loader2,
+  X,
+  Mail,
+  Phone,
+  Building2,
+  TrendingUp,
+} from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useAuth } from "@/context/AuthContext";
 import { useProject } from "@/context/ProjectContext";
@@ -19,9 +35,25 @@ type ContractorListing = {
   specializations?: string[];
   rating?: { average: number; count: number };
   createdAt?: string;
+  bio?: string;
+  completedProjects?: number;
 };
 
-const defaultSpecialties = ["All", "Brickwork", "Electrical", "Plumbing", "Carpentry", "Design", "Tiling"];
+const defaultSpecialties = [
+  "All",
+  "Civil Work",
+  "Electrical",
+  "Plumbing",
+  "Painting",
+  "Carpentry",
+  "Flooring",
+  "Roofing",
+  "HVAC",
+  "Landscaping",
+  "Interior Design",
+  "Masonry",
+  "Welding",
+];
 
 export default function HireContractor() {
   const navigate = useNavigate();
@@ -38,6 +70,7 @@ export default function HireContractor() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [selectedContractor, setSelectedContractor] = useState<ContractorListing | null>(null);
 
   const isOwner =
     currentProject?.owner &&
@@ -86,7 +119,9 @@ export default function HireContractor() {
 
   const filteredContractors = contractors.filter((contractor) => {
     if (selectedSpecialty === "All") return true;
-    return contractor.specializations?.some((spec) => spec.toLowerCase().includes(selectedSpecialty.toLowerCase()));
+    return contractor.specializations?.some((spec) =>
+      spec.toLowerCase().includes(selectedSpecialty.toLowerCase())
+    );
   });
 
   const handleInvite = async (contractor: ContractorListing) => {
@@ -102,7 +137,8 @@ export default function HireContractor() {
     try {
       await inviteMember(currentProject._id, contractor.email, "worker");
       await fetchTeamMembers(currentProject._id);
-      showToast({ type: "success", message: `Invite sent to ${contractor.name}` });
+      showToast({ type: "success", message: `✉️ Hire request sent to ${contractor.name}` });
+      setSelectedContractor(null);
     } catch (err) {
       await addMember({
         name: contractor.name,
@@ -119,173 +155,483 @@ export default function HireContractor() {
     }
   };
 
-  const backButton = (
-    <button onClick={() => navigate(-1)} className="text-white hover:text-[#cfe0ad] touch-target focus-ring mr-2">
-      <ArrowLeft size={20} className="xs:w-6 xs:h-6" />
-    </button>
-  );
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+      },
+    },
+  };
 
   return (
-    <PageLayout
-      title="Hire a Contractor"
-      customHeader={backButton}
-      contentClassName="px-4 xs:px-5 sm:px-6 md:px-10 lg:px-24"
-    >
-      <div className="mx-auto w-full max-w-6xl">
-        {!currentProject && (
-          <Card className="mt-6 border border-[#242424] bg-[#101010] p-4 text-sm xs:text-base text-[#bdbdbd]">
-            Select or create a project to send contractor invites.
-          </Card>
-        )}
-        {error && (
-          <Card className="mt-4 border border-red-500/40 bg-red-500/10 p-4 text-sm xs:text-base text-red-200">
-            {error}
-          </Card>
-        )}
-
-        <section className="mt-8 xs:mt-12 sm:mt-16">
-          <h2 className="text-2xl xs:text-3xl sm:text-4xl font-bold tracking-tight text-white">Find Your Perfect Contractor</h2>
-
-          {/* Search Bar */}
-          <div className="mt-4 xs:mt-6 sm:mt-8 relative">
-            <Search size={20} className="absolute left-4 xs:left-5 sm:left-6 top-1/2 -translate-y-1/2 text-[#8a8a8a] xs:w-6 xs:h-6" />
-            <input
-              type="text"
-              placeholder="Search by name, role, or company..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-full border border-[#2a2a2a] bg-[#0c0c0c] py-3 xs:py-4 sm:py-5 pl-12 xs:pl-14 sm:pl-16 pr-4 xs:pr-6 text-base xs:text-lg sm:text-xl text-white placeholder-[#6a6a6a] outline-none focus:border-[#cfe0ad] touch-target"
-            />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-24">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Find Contractors</h1>
+            <p className="text-gray-400 mt-1">
+              Browse and hire skilled contractors for your projects
+            </p>
           </div>
+        </div>
+      </motion.div>
 
-          {/* Specialty Filter */}
-          <div className="scroll-x-container mt-4 xs:mt-6">
-            {specialties.map((specialty) => (
-              <button
-                key={specialty}
-                onClick={() => setSelectedSpecialty(specialty)}
-                className={`shrink-0 rounded-full border px-4 xs:px-5 sm:px-6 py-2 xs:py-2.5 sm:py-3 text-sm xs:text-base sm:text-lg font-semibold transition touch-target focus-ring ${
-                  selectedSpecialty === specialty
-                    ? "border-[#cfe0ad] bg-[#cfe0ad] text-black"
-                    : "border-[#2a2a2a] bg-[#0c0c0c] text-white hover:border-[#3a3a3a]"
-                }`}
-              >
-                {specialty}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-10 xs:mt-12 sm:mt-16">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg xs:text-xl sm:text-2xl font-semibold text-white">
-              {filteredContractors.length} Contractors Available
-            </h3>
-          </div>
-
-          {isLoading && (
-            <Card className="mt-6 border border-[#2a2a2a] bg-[#101010] p-4 xs:p-6 text-base xs:text-lg text-[#bdbdbd]">
-              Loading contractors...
-            </Card>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Alert Messages */}
+        <AnimatePresence>
+          {!currentProject && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6"
+            >
+              <Card className="p-4 bg-blue-50 border-blue-200">
+                <p className="text-blue-800">
+                  💡 Select or create a project to send contractor hire requests.
+                </p>
+              </Card>
+            </motion.div>
           )}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6"
+            >
+              <Card className="p-4 bg-red-50 border-red-200">
+                <p className="text-red-800">{error}</p>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <div className="mt-4 xs:mt-6 sm:mt-8 grid grid-cols-1 gap-4 xs:gap-6 sm:gap-8 md:grid-cols-2">
+        {/* Search & Filter Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <Card className="p-6 bg-gray-800/50 border-gray-700">
+            {/* Search Bar */}
+            <div className="relative mb-6">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, company, or specialization..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-600 bg-gray-700/50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-white placeholder-gray-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Specialty Filters */}
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-5 h-5 text-gray-400" />
+              <h3 className="font-semibold text-white">Filter by Specialty</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {specialties.slice(0, 10).map((specialty) => (
+                <motion.button
+                  key={specialty}
+                  onClick={() => setSelectedSpecialty(specialty)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedSpecialty === specialty
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 border border-gray-600"
+                  }`}
+                >
+                  {specialty}
+                </motion.button>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Results Header */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6 flex items-center justify-between"
+        >
+          <h2 className="text-2xl font-bold text-white">
+            {isLoading ? "Loading..." : `${filteredContractors.length} Contractors Available`}
+          </h2>
+        </motion.div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+              <p className="text-gray-600">Finding contractors...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Contractors Grid */}
+        {!isLoading && filteredContractors.length > 0 && (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
             {filteredContractors.map((contractor) => {
-              const rating = contractor.rating?.average ? contractor.rating.average.toFixed(1) : "New";
+              const rating = contractor.rating?.average || 0;
               const reviews = contractor.rating?.count || 0;
               const experienceYears = contractor.createdAt
-                ? Math.max(1, Math.floor((Date.now() - new Date(contractor.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365)))
+                ? Math.max(
+                    1,
+                    Math.floor(
+                      (Date.now() - new Date(contractor.createdAt).getTime()) /
+                        (1000 * 60 * 60 * 24 * 365)
+                    )
+                  )
                 : 1;
 
               return (
-                <Card
-                  key={contractor._id}
-                  className="rounded-[24px] xs:rounded-[30px] sm:rounded-[34px] border border-[#2a2a2a] bg-[#101010] p-4 xs:p-6 sm:p-8 transition hover:border-[#cfe0ad]"
-                >
-                  <div className="flex items-start gap-4 xs:gap-5 sm:gap-6">
-                    <Avatar className="h-14 w-14 xs:h-16 xs:w-16 sm:h-20 sm:w-20 border-2 border-[#2a2a2a] shrink-0">
-                      <AvatarFallback className="text-lg xs:text-xl sm:text-2xl">
-                        {contractor.name.split(" ").map(n => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-lg xs:text-xl sm:text-2xl font-semibold text-white truncate">{contractor.name}</h4>
-                      <p className="mt-1 text-sm xs:text-base sm:text-lg text-[#bdbdbd]">
-                        {contractor.specializations?.[0] || "Contractor"}
-                      </p>
-                      <p className="text-xs xs:text-sm sm:text-base text-[#8a8a8a]">
-                        {contractor.company?.name || "Independent"}
-                      </p>
-
-                      <div className="mt-3 xs:mt-4 flex items-center gap-2">
-                        <Star size={16} className="fill-[#cfe0ad] text-[#cfe0ad] xs:w-5 xs:h-5" />
-                        <span className="text-base xs:text-lg sm:text-xl font-semibold text-white">{rating}</span>
-                        <span className="text-xs xs:text-sm sm:text-base text-[#8a8a8a]">({reviews})</span>
-                      </div>
-
-                      <div className="mt-3 xs:mt-4 flex flex-wrap items-center gap-2 xs:gap-3 text-xs xs:text-sm text-[#bdbdbd]">
-                        <div className="flex items-center gap-1 xs:gap-2">
-                          <MapPin size={14} className="xs:w-4 xs:h-4" />
-                          <span>{contractor.company?.address || "Remote"}</span>
-                        </div>
-                        <div className="flex items-center gap-1 xs:gap-2">
-                          <Briefcase size={14} className="xs:w-4 xs:h-4" />
-                          <span>{experienceYears} yrs</span>
+                <motion.div key={contractor._id} variants={itemVariants}>
+                  <Card className="h-full bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 hover:border-blue-500 transition-all cursor-pointer overflow-hidden">
+                    <div className="p-6">
+                      {/* Header */}
+                      <div className="flex items-start gap-4 mb-4">
+                        <motion.div whileHover={{ scale: 1.1 }}>
+                          <Avatar className="w-16 h-16 border-4 border-gray-700">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xl font-bold">
+                              {contractor.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                        </motion.div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-white truncate">
+                            {contractor.name}
+                          </h3>
+                          <p className="text-sm text-gray-400">
+                            {contractor.specializations?.[0] || "General Contractor"}
+                          </p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                            <Building2 className="w-3 h-3" />
+                            {contractor.company?.name || "Independent"}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="mt-3 xs:mt-4 flex flex-wrap gap-1.5 xs:gap-2">
-                        {(contractor.specializations?.length ? contractor.specializations.slice(0, 3) : ["General"]).map((specialty) => (
+                      {/* Rating */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < Math.round(rating)
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-semibold text-white">
+                          {rating > 0 ? rating.toFixed(1) : "New"}
+                        </span>
+                        <span className="text-xs text-gray-500">({reviews} reviews)</span>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-gray-700/50 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-gray-400 mb-1">
+                            <Briefcase className="w-4 h-4" />
+                            <span className="text-xs">Experience</span>
+                          </div>
+                          <p className="text-lg font-bold text-white">{experienceYears} yrs</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-gray-400 mb-1">
+                            <Award className="w-4 h-4" />
+                            <span className="text-xs">Projects</span>
+                          </div>
+                          <p className="text-lg font-bold text-white">
+                            {contractor.completedProjects || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Location */}
+                      {contractor.company?.address && (
+                        <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+                          <MapPin className="w-4 h-4" />
+                          <span className="truncate">{contractor.company.address}</span>
+                        </div>
+                      )}
+
+                      {/* Specializations */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {(contractor.specializations?.length
+                          ? contractor.specializations.slice(0, 3)
+                          : ["General"]
+                        ).map((specialty) => (
                           <span
                             key={specialty}
-                            className="rounded-full border border-[#2a2a2a] bg-[#0c0c0c] px-2 xs:px-3 py-1 text-xs xs:text-sm text-white"
+                            className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium"
                           >
                             {specialty}
                           </span>
                         ))}
+                        {contractor.specializations && contractor.specializations.length > 3 && (
+                          <span className="px-3 py-1 bg-gray-700/50 text-gray-400 rounded-full text-xs font-medium">
+                            +{contractor.specializations.length - 3}
+                          </span>
+                        )}
                       </div>
 
-                      <div className="mt-4 xs:mt-6 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs xs:text-sm text-[#8a8a8a]">Rate</p>
-                          <p className="text-base xs:text-lg sm:text-2xl font-bold text-[#cfe0ad]">On request</p>
-                        </div>
-                        <span className="rounded-full px-3 xs:px-4 py-1.5 xs:py-2 text-xs xs:text-sm font-semibold bg-[#4ade80]/10 text-[#4ade80]">
-                          Available
+                      {/* Availability Badge */}
+                      <div className="flex items-center justify-center mb-4">
+                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-300 rounded-full text-sm font-medium">
+                          <CheckCircle className="w-4 h-4" />
+                          Available Now
                         </span>
                       </div>
 
-                      <button
-                        type="button"
-                        className="mt-4 xs:mt-6 w-full rounded-full bg-[#cfe0ad] py-2.5 xs:py-3 sm:py-4 text-sm xs:text-base sm:text-lg font-semibold text-black transition hover:bg-[#d4e4b8] disabled:opacity-60 touch-target focus-ring"
-                        onClick={() => handleInvite(contractor)}
-                        disabled={submittingId === contractor._id || !currentProject?._id}
-                      >
-                        {submittingId === contractor._id ? "Sending..." : "Send Hire Request"}
-                      </button>
+                      {/* Actions */}
+                      <div className="space-y-2">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                            onClick={() => handleInvite(contractor)}
+                            disabled={submittingId === contractor._id || !currentProject?._id}
+                          >
+                            {submittingId === contractor._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Send Hire Request
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setSelectedContractor(contractor)}
+                          >
+                            View Profile
+                          </Button>
+                        </motion.div>
+                      </div>
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
+        )}
 
-          {!isLoading && filteredContractors.length === 0 && (
-            <div className="mt-10 xs:mt-12 sm:mt-16 text-center">
-              <p className="text-lg xs:text-xl sm:text-2xl text-[#bdbdbd]">No contractors found matching your criteria</p>
-              <button
-                onClick={() => {
-                  setSelectedSpecialty("All");
-                  setSearchQuery("");
-                }}
-                className="mt-4 xs:mt-6 rounded-full border border-[#2a2a2a] bg-[#0c0c0c] px-6 xs:px-8 py-3 xs:py-4 text-base xs:text-lg sm:text-xl font-semibold text-white transition hover:border-[#cfe0ad] touch-target focus-ring"
-              >
-                Clear Filters
-              </button>
-            </div>
-          )}
-        </section>
+        {/* Empty State */}
+        {!isLoading && filteredContractors.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20"
+          >
+            <Users className="w-20 h-20 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">No contractors found</h3>
+            <p className="text-gray-600 mb-6">
+              Try adjusting your search criteria or filters
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedSpecialty("All");
+                setSearchQuery("");
+              }}
+            >
+              Clear All Filters
+            </Button>
+          </motion.div>
+        )}
       </div>
-    </PageLayout>
+
+      {/* Contractor Profile Modal */}
+      <AnimatePresence>
+        {selectedContractor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedContractor(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+            >
+              <div className="p-8">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-20 h-20 border-4 border-gray-100">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-2xl font-bold">
+                        {selectedContractor.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {selectedContractor.name}
+                      </h2>
+                      <p className="text-gray-600">
+                        {selectedContractor.specializations?.[0] || "General Contractor"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedContractor(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Contact Info */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-gray-600" />
+                    <span className="text-gray-900">{selectedContractor.email}</span>
+                  </div>
+                  {selectedContractor.phone && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-5 h-5 text-gray-600" />
+                      <span className="text-gray-900">{selectedContractor.phone}</span>
+                    </div>
+                  )}
+                  {selectedContractor.company?.name && (
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-gray-600" />
+                      <span className="text-gray-900">{selectedContractor.company.name}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rating */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-3">Rating & Reviews</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-6 h-6 ${
+                            i < Math.round(selectedContractor.rating?.average || 0)
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xl font-bold text-gray-900">
+                      {selectedContractor.rating?.average?.toFixed(1) || "New"}
+                    </span>
+                    <span className="text-gray-500">
+                      ({selectedContractor.rating?.count || 0} reviews)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Specializations */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-3">Specializations</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(selectedContractor.specializations || ["General"]).map((specialty) => (
+                      <span
+                        key={specialty}
+                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                      >
+                        {specialty}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bio */}
+                {selectedContractor.bio && (
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-900 mb-3">About</h3>
+                    <p className="text-gray-700">{selectedContractor.bio}</p>
+                  </div>
+                )}
+
+                {/* Action Button */}
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    onClick={() => handleInvite(selectedContractor)}
+                    disabled={submittingId === selectedContractor._id || !currentProject?._id}
+                    size="lg"
+                  >
+                    {submittingId === selectedContractor._id ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Sending Hire Request...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-5 h-5 mr-2" />
+                        Send Hire Request
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

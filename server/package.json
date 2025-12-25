@@ -9,7 +9,6 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@clerk/clerk-sdk-node": "^5.1.6",
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
@@ -21,7 +20,8 @@
     "jsonwebtoken": "^9.0.2",
     "matters": "file:..",
     "mongoose": "^8.6.3",
-    "nodemailer": "^6.9.15",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.10.1",
     "pusher": "^5.2.0",
     "razorpay": "^2.9.4"
   },

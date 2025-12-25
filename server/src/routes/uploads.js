@@ -5,8 +5,45 @@ import Stage from '../models/Stage.js';
 import { authenticate } from '../middleware/auth.js';
 import { uploadToGoogleDrive, deleteFromGoogleDrive, getFileUrl } from '../utils/googleDrive.js';
 import { triggerProjectEvent } from '../utils/realtime.js';
+import { upload, handleMulterError } from '../middleware/upload.js';
 
 const router = express.Router();
+
+/**
+ * POST /api/uploads/files
+ * Upload multiple files to server
+ */
+router.post('/files', authenticate, upload.array('files', 10), handleMulterError, async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No files uploaded.',
+      });
+    }
+
+    // Map files to return URLs
+    const files = req.files.map(file => ({
+      filename: file.filename,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      url: `/uploads/${file.filename}`, // Relative URL for serving files
+    }));
+
+    res.json({
+      success: true,
+      data: { files },
+      message: `${files.length} file(s) uploaded successfully.`,
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'File upload failed.',
+    });
+  }
+});
 
 /**
  * GET /api/uploads/project/:projectId

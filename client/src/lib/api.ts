@@ -295,7 +295,49 @@ api.interceptors.response.use(
 );
 
 // ===== AUTH API =====
+export interface LoginCredential {
+  email: string;
+  password: string;
+  role: string;
+  name: string;
+}
+
 export const authApi = {
+  login: async (email: string, password: string) => {
+    const response = await api.post<ApiResponse<{ user: User; token: string }>>('/session/login', { email, password });
+    if (response.data.success && response.data.data) {
+      authStorage.setTokens({ accessToken: response.data.data.token, refreshToken: '' });
+      authStorage.setUser(response.data.data.user);
+    }
+    return response.data;
+  },
+
+  register: async (data: {
+    email: string;
+    password: string;
+    name: string;
+    phone?: string;
+    role?: 'user' | 'contractor';
+    company?: { name?: string };
+    specializations?: string[];
+  }) => {
+    const response = await api.post<ApiResponse<{ user: User; token: string }>>('/session/register', data);
+    if (response.data.success && response.data.data) {
+      authStorage.setTokens({ accessToken: response.data.data.token, refreshToken: '' });
+      authStorage.setUser(response.data.data.user);
+    }
+    return response.data;
+  },
+
+  logout: async () => {
+    try {
+      await api.post<ApiResponse>('/session/logout');
+    } catch {
+      // Ignore errors on logout
+    }
+    authStorage.clear();
+  },
+
   getMe: async () => {
     const response = await api.get<ApiResponse<{ user: User }>>('/session');
     if (response.data.success && response.data.data) {
@@ -309,6 +351,11 @@ export const authApi = {
     if (response.data.success && response.data.data) {
       authStorage.setUser(response.data.data.user);
     }
+    return response.data;
+  },
+
+  getCredentials: async () => {
+    const response = await api.get<ApiResponse<{ credentials: LoginCredential[] }>>('/session/credentials');
     return response.data;
   },
 };
@@ -489,6 +536,20 @@ export const uploadsApi = {
 
   uploadFile: async (data: { project: string; stage?: string; file: string; filename: string; mimeType: string; category?: string; tags?: string[]; description?: string }) => {
     const response = await api.post<ApiResponse<{ upload: Upload }>>('/uploads/upload', data);
+    return response.data;
+  },
+
+  uploadFiles: async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+
+    const response = await api.post<ApiResponse<{ files: Array<{ filename: string; originalname: string; mimetype: string; size: number; url: string }> }>>('/uploads/files', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
@@ -1062,6 +1123,444 @@ export const publicApi = {
   },
 };
 
+// ============ Jobs API ============
+
+export interface Job {
+  _id: string;
+  project: { _id: string; name: string; type?: string; location?: { city?: string } };
+  postedBy: { _id: string; name: string; avatar?: string };
+  title: string;
+  description?: string;
+  budget?: {
+    min?: number;
+    max?: number;
+    currency?: string;
+    type?: string;
+  };
+  requiredSpecializations?: string[];
+  location?: { address?: string; city?: string; state?: string };
+  timeline?: { startDate?: string; endDate?: string; duration?: string };
+  workType?: string;
+  status: string;
+  bids?: Bid[];
+  assignedContractor?: { _id: string; name: string; avatar?: string; rating?: { average: number } };
+  viewCount?: number;
+  bidCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Bid {
+  _id: string;
+  contractor: { _id: string; name: string; avatar?: string; rating?: { average: number }; company?: { name: string } };
+  amount: number;
+  proposal: string;
+  estimatedDuration?: string;
+  status: string;
+  submittedAt: string;
+  respondedAt?: string;
+  responseNote?: string;
+}
+
+export const jobsApi = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    city?: string;
+    specialization?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    workType?: string;
+    search?: string;
+  }) => {
+    const response = await api.get<ApiResponse<{ jobs: Job[]; pagination: { page: number; limit: number; total: number; pages: number } }>>('/jobs', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get<ApiResponse<Job>>(`/jobs/${id}`);
+    return response.data;
+  },
+
+  getMyPostings: async (params?: { status?: string; page?: number; limit?: number }) => {
+    const response = await api.get<ApiResponse<{ jobs: Job[]; pagination: { page: number; limit: number; total: number; pages: number } }>>('/jobs/my-postings', { params });
+    return response.data;
+  },
+
+  getMyBids: async (params?: { status?: string; page?: number; limit?: number }) => {
+    const response = await api.get<ApiResponse<{ bids: { job: Job; bid: Bid }[]; pagination: { page: number; limit: number; total: number; pages: number } }>>('/jobs/my-bids', { params });
+    return response.data;
+  },
+
+  getAssigned: async () => {
+    const response = await api.get<ApiResponse<Job[]>>('/jobs/assigned');
+    return response.data;
+  },
+
+  create: async (data: {
+    projectId: string;
+    title: string;
+    description?: string;
+    budget?: { min?: number; max?: number; type?: string };
+    requiredSpecializations?: string[];
+    location?: { address?: string; city?: string; state?: string };
+    timeline?: { startDate?: string; endDate?: string; duration?: string };
+    workType?: string;
+    requirements?: { item: string; description?: string }[];
+  }) => {
+    const response = await api.post<ApiResponse<Job>>('/jobs', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<Job>) => {
+    const response = await api.patch<ApiResponse<Job>>(`/jobs/${id}`, data);
+    return response.data;
+  },
+
+  cancel: async (id: string, reason?: string) => {
+    const response = await api.delete<ApiResponse<{ message: string }>>(`/jobs/${id}`, { data: { reason } });
+    return response.data;
+  },
+
+  submitBid: async (jobId: string, data: { amount: number; proposal: string; estimatedDuration?: string }) => {
+    const response = await api.post<ApiResponse<{ jobId: string; bidCount: number }>>(`/jobs/${jobId}/bid`, data);
+    return response.data;
+  },
+
+  updateBid: async (jobId: string, bidId: string, data: { amount?: number; proposal?: string; estimatedDuration?: string }) => {
+    const response = await api.patch<ApiResponse<Bid>>(`/jobs/${jobId}/bid/${bidId}`, data);
+    return response.data;
+  },
+
+  withdrawBid: async (jobId: string, bidId: string) => {
+    const response = await api.post<ApiResponse<{ message: string }>>(`/jobs/${jobId}/bid/${bidId}/withdraw`);
+    return response.data;
+  },
+
+  acceptBid: async (jobId: string, bidId: string, note?: string) => {
+    const response = await api.post<ApiResponse<{ job: Job }>>(`/jobs/${jobId}/bid/${bidId}/accept`, { note });
+    return response.data;
+  },
+
+  rejectBid: async (jobId: string, bidId: string, note?: string) => {
+    const response = await api.post<ApiResponse<{ message: string }>>(`/jobs/${jobId}/bid/${bidId}/reject`, { note });
+    return response.data;
+  },
+
+  getBids: async (jobId: string) => {
+    const response = await api.get<ApiResponse<{ jobId: string; jobTitle: string; jobStatus: string; bids: Bid[]; summary: { total: number; pending: number; accepted: number; rejected: number } }>>(`/jobs/${jobId}/bids`);
+    return response.data;
+  },
+
+  startJob: async (jobId: string) => {
+    const response = await api.post<ApiResponse<{ status: string }>>(`/jobs/${jobId}/start`);
+    return response.data;
+  },
+
+  completeJob: async (jobId: string) => {
+    const response = await api.post<ApiResponse<{ status: string }>>(`/jobs/${jobId}/complete`);
+    return response.data;
+  },
+};
+
+// ============ Progress Updates API ============
+
+export interface ProgressUpdate {
+  _id: string;
+  project: { _id: string; name: string; type?: string };
+  stage?: { _id: string; name: string; type?: string };
+  job?: string;
+  contractor: { _id: string; name: string; avatar?: string; company?: { name: string } };
+  type: string;
+  title?: string;
+  description: string;
+  photoUrls?: { url: string; caption?: string }[];
+  workDone?: { task: string; status: string; notes?: string }[];
+  materialsUsed?: { name: string; quantity: number; unit?: string; cost?: number }[];
+  issues?: { description: string; severity: string; resolved: boolean }[];
+  weather?: { condition?: string; temperature?: number; impact?: string };
+  workersOnSite?: number;
+  hoursWorked?: number;
+  progressPercentage?: number;
+  nextSteps?: string;
+  customerAcknowledged?: boolean;
+  comments?: { user: { _id: string; name: string }; text: string; createdAt: string }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProgressSummary {
+  totalUpdates: number;
+  totalHoursWorked: number;
+  avgWorkersOnSite: number;
+  totalIssues: number;
+  unresolvedIssues: number;
+  lastUpdate: string | null;
+}
+
+export const progressApi = {
+  getByProject: async (projectId: string, params?: { type?: string; limit?: number; page?: number }) => {
+    const response = await api.get<ApiResponse<{ updates: ProgressUpdate[]; summary: ProgressSummary; pagination: { page: number; limit: number; total: number; pages: number } }>>(`/progress/project/${projectId}`, { params });
+    return response.data;
+  },
+
+  getMyUpdates: async (params?: { projectId?: string; limit?: number; page?: number }) => {
+    const response = await api.get<ApiResponse<{ updates: ProgressUpdate[]; pagination: { page: number; limit: number; total: number; pages: number } }>>('/progress/my-updates', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get<ApiResponse<ProgressUpdate>>(`/progress/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    projectId: string;
+    stageId?: string;
+    jobId?: string;
+    type?: string;
+    title?: string;
+    description: string;
+    photoUrls?: { url: string; caption?: string }[];
+    workDone?: { task: string; status: string; notes?: string }[];
+    materialsUsed?: { name: string; quantity: number; unit?: string; cost?: number }[];
+    issues?: { description: string; severity: string }[];
+    weather?: { condition?: string; temperature?: number; impact?: string };
+    workersOnSite?: number;
+    hoursWorked?: number;
+    progressPercentage?: number;
+    nextSteps?: string;
+    customerVisible?: boolean;
+  }) => {
+    const response = await api.post<ApiResponse<ProgressUpdate>>('/progress', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<ProgressUpdate>) => {
+    const response = await api.patch<ApiResponse<ProgressUpdate>>(`/progress/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete<ApiResponse<{ message: string }>>(`/progress/${id}`);
+    return response.data;
+  },
+
+  acknowledge: async (id: string) => {
+    const response = await api.post<ApiResponse<{ message: string }>>(`/progress/${id}/acknowledge`);
+    return response.data;
+  },
+
+  addComment: async (id: string, text: string) => {
+    const response = await api.post<ApiResponse<{ user: { _id: string; name: string }; text: string; createdAt: string }>>(`/progress/${id}/comment`, { text });
+    return response.data;
+  },
+
+  resolveIssue: async (id: string, issueIndex: number, resolution: string) => {
+    const response = await api.post<ApiResponse<{ message: string }>>(`/progress/${id}/issue/${issueIndex}/resolve`, { resolution });
+    return response.data;
+  },
+};
+
+// ============ Contractor Dashboard API ============
+
+export interface ContractorDashboardData {
+  profile: {
+    name: string;
+    avatar?: string;
+    company?: { name?: string };
+    specializations?: string[];
+    rating?: { average: number; count: number };
+    isVerified: boolean;
+    availabilityStatus: string;
+    yearsExperience?: number;
+  };
+  stats: {
+    openJobs: number;
+    pendingBids: number;
+    activeJobs: number;
+    completedJobs: number;
+    totalEarnings: number;
+    monthlyEarnings: number;
+  };
+  recentProjects: Array<{
+    _id: string;
+    name: string;
+    status: string;
+    budget?: { estimated: number; spent: number };
+    progress?: { percentage: number };
+  }>;
+  recentUpdates: Array<{
+    _id: string;
+    title?: string;
+    type: string;
+    createdAt: string;
+    project: { _id: string; name: string };
+  }>;
+}
+
+export interface ContractorEarnings {
+  year: number;
+  totalEarnings: number;
+  allTimeEarnings: number;
+  monthlyBreakdown: Array<{ month: string; amount: number }>;
+  recentPayments: Array<{
+    jobId: string;
+    jobTitle: string;
+    project: { _id: string; name: string };
+    customer: { _id: string; name: string };
+    amount: number;
+    completedAt: string;
+  }>;
+  jobsCompleted: number;
+}
+
+export const contractorDashboardApi = {
+  getDashboard: async () => {
+    const response = await api.get<ApiResponse<ContractorDashboardData>>('/contractor/dashboard');
+    return response.data;
+  },
+
+  getProjects: async (params?: { status?: string; page?: number; limit?: number }) => {
+    const response = await api.get<ApiResponse<{ projects: Array<{ _id: string; name: string; status: string; owner: { name: string; email: string } }>; pagination: { page: number; limit: number; total: number; pages: number } }>>('/contractor/projects', { params });
+    return response.data;
+  },
+
+  getEarnings: async (year?: number) => {
+    const response = await api.get<ApiResponse<ContractorEarnings>>('/contractor/earnings', { params: { year } });
+    return response.data;
+  },
+
+  getSchedule: async () => {
+    const response = await api.get<ApiResponse<{
+      items: Array<{
+        type: string;
+        id: string;
+        title: string;
+        startDate?: string;
+        endDate?: string;
+        status: string;
+      }>;
+      activeJobsCount: number;
+      activeProjectsCount: number;
+    }>>('/contractor/schedule');
+    return response.data;
+  },
+
+  updateAvailability: async (status: 'available' | 'busy' | 'on_leave') => {
+    const response = await api.patch<ApiResponse<{ availabilityStatus: string }>>('/contractor/availability', { status });
+    return response.data;
+  },
+
+  getProfile: async () => {
+    const response = await api.get<ApiResponse<User>>('/contractor/profile');
+    return response.data;
+  },
+
+  updateProfile: async (data: {
+    name?: string;
+    phone?: string;
+    company?: { name?: string; address?: string; license?: string; gstin?: string; website?: string };
+    specializations?: string[];
+    bio?: string;
+    yearsExperience?: number;
+    hourlyRate?: number;
+    dailyRate?: number;
+    serviceAreas?: { city: string; state: string }[];
+    portfolioImages?: string[];
+  }) => {
+    const response = await api.patch<ApiResponse<User>>('/contractor/profile', data);
+    return response.data;
+  },
+
+  getReviews: async () => {
+    const response = await api.get<ApiResponse<{ rating: { average: number; count: number }; reviews: unknown[] }>>('/contractor/reviews');
+    return response.data;
+  },
+
+  uploadDocument: async (data: { type: string; name: string; url: string }) => {
+    const response = await api.post<ApiResponse<unknown>>('/contractor/documents', data);
+    return response.data;
+  },
+
+  getStats: async () => {
+    const response = await api.get<ApiResponse<{
+      bids: { total: number; accepted: number; rejected: number; acceptanceRate: number };
+      jobs: { total: number; completed: number; inProgress: number; completionRate: number };
+      projects: number;
+      progressUpdates: number;
+    }>>('/contractor/stats');
+    return response.data;
+  },
+};
+
+// ============ Enhanced Admin API ============
+
+export const adminDashboardApi = {
+  getDashboard: async () => {
+    const response = await api.get<ApiResponse<{
+      overview: {
+        users: { total: number; newThisMonth: number };
+        projects: { total: number; active: number };
+        jobs: { total: number; open: number };
+        tickets: { pending: number };
+        contractors: { total: number; verified: number };
+      };
+      revenue: { totalBilled: number; totalPaid: number; count: number };
+      recentActivity: {
+        users: Array<{ _id: string; name: string; email: string; role: string; createdAt: string }>;
+        projects: Array<{ _id: string; name: string; status: string; owner: { name: string }; createdAt: string }>;
+        tickets: Array<{ _id: string; ticketNumber: string; subject: string; status: string; priority: string; user: { name: string }; createdAt: string }>;
+      };
+    }>>('/admin/dashboard');
+    return response.data;
+  },
+
+  getContractors: async (params?: { page?: number; limit?: number; verified?: string; search?: string }) => {
+    const response = await api.get<ApiResponse<{ contractors: User[]; pagination: { page: number; limit: number; total: number; pages: number } }>>('/admin/contractors', { params });
+    return response.data;
+  },
+
+  verifyContractor: async (id: string, verified: boolean, notes?: string) => {
+    const response = await api.patch<ApiResponse<{ id: string; isVerified: boolean; verifiedAt: string }>>(`/admin/contractors/${id}/verify`, { verified, notes });
+    return response.data;
+  },
+
+  getTickets: async (params?: { page?: number; limit?: number; status?: string; priority?: string; search?: string }) => {
+    const response = await api.get<ApiResponse<{ tickets: Array<{ _id: string; ticketNumber: string; subject: string; message: string; status: string; priority: string; user: { name: string; email: string }; project: { name: string }; createdAt: string }>; pagination: { page: number; limit: number; total: number; pages: number } }>>('/admin/tickets', { params });
+    return response.data;
+  },
+
+  getTicket: async (id: string) => {
+    const response = await api.get<ApiResponse<{ _id: string; ticketNumber: string; subject: string; message: string; status: string; priority: string; user: { name: string; email: string; avatar?: string; phone?: string }; project: { name: string; status: string }; createdAt: string; resolvedAt?: string }>>(`/admin/tickets/${id}`);
+    return response.data;
+  },
+
+  updateTicket: async (id: string, data: { status?: string; priority?: string }) => {
+    const response = await api.patch<ApiResponse<unknown>>(`/admin/tickets/${id}`, data);
+    return response.data;
+  },
+
+  getAnalytics: async (period?: number) => {
+    const response = await api.get<ApiResponse<{
+      userGrowth: Array<{ _id: string; count: number }>;
+      projectsByStatus: Record<string, number>;
+      projectsByType: Record<string, number>;
+      jobsByStatus: Record<string, number>;
+      revenueByMonth: Array<{ _id: string; totalBilled: number; totalPaid: number; count: number }>;
+      usersByRole: Record<string, number>;
+      topCities: Array<{ _id: string; count: number }>;
+    }>>('/admin/analytics', { params: { period } });
+    return response.data;
+  },
+
+  getJobs: async (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+    const response = await api.get<ApiResponse<{ jobs: Job[]; pagination: { page: number; limit: number; total: number; pages: number } }>>('/admin/jobs', { params });
+    return response.data;
+  },
+};
+
 // Health check
 export const checkHealth = async () => {
   try {
@@ -1093,6 +1592,10 @@ export default {
   subscriptions: subscriptionsApi,
   admin: adminApi,
   public: publicApi,
+  jobs: jobsApi,
+  progress: progressApi,
+  contractorDashboard: contractorDashboardApi,
+  adminDashboard: adminDashboardApi,
   checkHealth,
   authStorage,
 };

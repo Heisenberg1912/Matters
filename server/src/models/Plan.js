@@ -64,7 +64,7 @@ const planSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-planSchema.index({ planId: 1 });
+// Note: planId already has unique: true, so no need for explicit index
 planSchema.index({ isActive: 1, sortOrder: 1 });
 
 // Static method to get all active plans

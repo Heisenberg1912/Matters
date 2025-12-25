@@ -27,7 +27,7 @@ const COLORS = {
 
 // Helper to format currency
 function formatCurrency(amount: number, currency = 'INR'): string {
-  const symbol = currency === 'USD' ? '$' : '\u20B9';
+  const symbol = currency === 'USD' ? '$' : '₹';
   return `${symbol}${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
@@ -108,9 +108,16 @@ export async function exportToPDF(report: Report, projectName?: string): Promise
     );
   }
 
-  // Save
+  // Save using a blob to avoid navigation issues
   const filename = `${report.name.replace(/\s+/g, '_')}_${report.generatedDate}.pdf`;
-  doc.save(filename);
+  const blob = doc.output('blob');
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
 }
 
 function renderBudgetPDF(doc: jsPDF, data: Record<string, unknown>, startY: number): number {
@@ -459,9 +466,17 @@ export function exportToExcel(report: Report, projectName?: string): void {
       XLSX.utils.book_append_sheet(wb, jsonSheet, 'Data');
   }
 
-  // Save
+  // Save using a blob to avoid navigation issues
   const filename = `${report.name.replace(/\s+/g, '_')}_${report.generatedDate}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
 }
 
 function addBudgetSheets(wb: XLSX.WorkBook, data: Record<string, unknown>): void {
