@@ -330,9 +330,17 @@ router.post('/forgot-password', async (req, res) => {
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
     // Save token and expiry (1 hour from now)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     user.passwordResetToken = hashedToken;
-    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    user.passwordResetExpires = expiresAt;
     await user.save();
+
+    // Verify token was saved correctly
+    console.log('Password reset token generated and saved:');
+    console.log('- User:', user.email);
+    console.log('- Token (first 10 chars):', resetToken.substring(0, 10) + '...');
+    console.log('- Hashed token (first 10 chars):', hashedToken.substring(0, 10) + '...');
+    console.log('- Expires at:', expiresAt);
 
     // Create reset URL (use frontend URL in production)
     const frontendUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
@@ -379,18 +387,33 @@ router.get('/verify-reset-token', async (req, res) => {
     // Hash the token to compare with stored hash
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    // Find user with valid token
-    const user = await User.findOne({
+    // First, find user with this token (regardless of expiry) to help debug
+    const userWithToken = await User.findOne({
       passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() },
     });
 
-    if (!user) {
+    if (!userWithToken) {
+      console.log('Token verification failed: No user found with this token hash');
+      console.log('Provided token (first 10 chars):', token.substring(0, 10) + '...');
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired reset token.',
       });
     }
+
+    // Check if token has expired
+    const now = new Date();
+    if (!userWithToken.passwordResetExpires || userWithToken.passwordResetExpires < now) {
+      console.log('Token verification failed: Token expired');
+      console.log('Token expired at:', userWithToken.passwordResetExpires);
+      console.log('Current time:', now);
+      return res.status(400).json({
+        success: false,
+        error: 'Reset token has expired. Please request a new password reset link.',
+      });
+    }
+
+    console.log('Token verification successful for user:', userWithToken.email);
 
     res.json({
       success: true,

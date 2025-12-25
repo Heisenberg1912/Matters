@@ -107,7 +107,10 @@ export default function ResetPassword() {
 
           <h1 className="text-2xl font-bold text-white mb-3">Invalid Reset Link</h1>
           <p className="text-neutral-400 mb-6">
-            {error || "This password reset link is invalid or has expired. Please request a new one."}
+            {error || "Invalid or expired reset link"}
+          </p>
+          <p className="text-neutral-500 text-sm mb-6">
+            This can happen if the link has expired (valid for 1 hour), was already used, or is incorrect.
           </p>
 
           <div className="flex flex-col gap-3">
