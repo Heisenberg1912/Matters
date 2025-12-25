@@ -122,11 +122,11 @@ export default function SystemAnalytics() {
 
         <Card className="p-5">
           <h3 className="font-semibold mb-4">User Growth</h3>
-          {data.userGrowth.length === 0 ? (
+          {(data.userGrowth || []).length === 0 ? (
             <p className="text-sm text-muted">No new users in this period.</p>
           ) : (
             <div className="space-y-2">
-              {data.userGrowth.slice(-7).map((entry) => (
+              {(data.userGrowth || []).slice(-7).map((entry) => (
                 <div key={entry._id} className="flex items-center justify-between text-sm">
                   <span className="text-muted">{entry._id}</span>
                   <span className="font-medium">{entry.count}</span>
@@ -139,7 +139,7 @@ export default function SystemAnalytics() {
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Projects by Status</h3>
           <div className="grid grid-cols-2 gap-3">
-            {Object.entries(data.projectsByStatus).map(([status, count]) => (
+            {Object.entries(data.projectsByStatus || {}).map(([status, count]) => (
               <div key={status} className="p-3 bg-[#1a1a1a] rounded-xl">
                 <p className="text-xs text-muted capitalize">{status.replace("_", " ")}</p>
                 <p className="text-sm font-semibold mt-1">{count}</p>
@@ -151,7 +151,7 @@ export default function SystemAnalytics() {
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Jobs by Status</h3>
           <div className="grid grid-cols-2 gap-3">
-            {Object.entries(data.jobsByStatus).map(([status, count]) => (
+            {Object.entries(data.jobsByStatus || {}).map(([status, count]) => (
               <div key={status} className="p-3 bg-[#1a1a1a] rounded-xl">
                 <p className="text-xs text-muted capitalize">{status.replace("_", " ")}</p>
                 <p className="text-sm font-semibold mt-1">{count}</p>
@@ -162,11 +162,11 @@ export default function SystemAnalytics() {
 
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Revenue by Month</h3>
-          {data.revenueByMonth.length === 0 ? (
+          {(data.revenueByMonth || []).length === 0 ? (
             <p className="text-sm text-muted">No revenue recorded yet.</p>
           ) : (
             <div className="space-y-2">
-              {data.revenueByMonth.map((entry) => (
+              {(data.revenueByMonth || []).map((entry) => (
                 <div key={entry._id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted">
                     <BarChart3 className="h-4 w-4" />
@@ -185,7 +185,7 @@ export default function SystemAnalytics() {
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Users by Role</h3>
           <div className="grid grid-cols-2 gap-3">
-            {Object.entries(data.usersByRole).map(([role, count]) => (
+            {Object.entries(data.usersByRole || {}).map(([role, count]) => (
               <div key={role} className="p-3 bg-[#1a1a1a] rounded-xl">
                 <p className="text-xs text-muted capitalize">{role}</p>
                 <p className="text-sm font-semibold mt-1">{count}</p>
@@ -196,11 +196,11 @@ export default function SystemAnalytics() {
 
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Top Cities</h3>
-          {data.topCities.length === 0 ? (
+          {(data.topCities || []).length === 0 ? (
             <p className="text-sm text-muted">No location data available.</p>
           ) : (
             <div className="space-y-2">
-              {data.topCities.map((city) => (
+              {(data.topCities || []).map((city) => (
                 <div key={city._id} className="flex items-center justify-between text-sm">
                   <span className="text-muted">{city._id}</span>
                   <span className="font-medium">{city.count}</span>
