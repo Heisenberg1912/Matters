@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const state = globalThis.__mattersMongo || {
   conn: null,
   promise: null,
   listenersAttached: false,
+  memoryServer: null,
 };
 
 globalThis.__mattersMongo = state;
@@ -33,10 +35,19 @@ const connectDB = async () => {
   }
 
   if (!state.promise) {
-    const mongoURI = process.env.MONGO_URI || process.env.MONGODB_URI;
+    let mongoURI;
+    const useInMemory = process.env.USE_IN_MEMORY_DB === 'true';
 
-    if (!mongoURI) {
-      throw new Error('MongoDB URI not found in environment variables');
+    if (useInMemory) {
+      console.log('Starting in-memory MongoDB server...');
+      state.memoryServer = await MongoMemoryServer.create();
+      mongoURI = state.memoryServer.getUri();
+      console.log('In-memory MongoDB server started');
+    } else {
+      mongoURI = process.env.MONGO_URI || process.env.MONGODB_URI;
+      if (!mongoURI) {
+        throw new Error('MongoDB URI not found in environment variables');
+      }
     }
 
     const options = {
