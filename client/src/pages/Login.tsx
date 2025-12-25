@@ -50,16 +50,16 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#010101] flex flex-col items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-[#010101] flex flex-col items-center justify-center px-4 py-6 xs:p-6 sm:p-8">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-[340px] xs:max-w-sm sm:max-w-md"
       >
         {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Matters</h1>
-          <p className="text-neutral-400">Construction Management Dashboard</p>
+        <div className="text-center mb-6 xs:mb-8">
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold text-white mb-1 xs:mb-2">Matters</h1>
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400">Construction Management Dashboard</p>
         </div>
 
         {/* Login Form */}
@@ -68,16 +68,16 @@ export default function Login() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
           onSubmit={handleSubmit}
-          className="space-y-4"
+          className="space-y-3 xs:space-y-4"
         >
           {(error || authError) && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="p-2.5 xs:p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs xs:text-sm">
               {error || authError}
             </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-1">
+            <label htmlFor="email" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
               Email
             </label>
             <input
@@ -85,14 +85,14 @@ export default function Login() {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
+              className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
               placeholder="Enter your email"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-1">
+            <label htmlFor="password" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
               Password
             </label>
             <div className="relative">
@@ -101,16 +101,16 @@ export default function Login() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-12"
+                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-11 xs:pr-12"
                 placeholder="Enter your password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                className="absolute right-2.5 xs:right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1 touch-target"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" /> : <Eye className="w-4 h-4 xs:w-5 xs:h-5" />}
               </button>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function Login() {
           <div className="flex items-center justify-end">
             <Link
               to="/forgot-password"
-              className="text-sm text-neutral-400 hover:text-[#cfe0ad] transition-colors"
+              className="text-xs xs:text-sm text-neutral-400 hover:text-[#cfe0ad] transition-colors py-1"
             >
               Forgot password?
             </Link>
@@ -127,19 +127,19 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoading || !email || !password}
-            className="w-full py-3 px-4 bg-[#cfe0ad] text-black font-medium rounded-lg hover:bg-[#bfd09d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 xs:py-3 px-4 bg-[#cfe0ad] text-black text-sm xs:text-base font-medium rounded-lg hover:bg-[#bfd09d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Logging in...
+                <Loader2 className="w-4 h-4 xs:w-5 xs:h-5 animate-spin" />
+                <span className="text-sm xs:text-base">Logging in...</span>
               </>
             ) : (
               "Login"
             )}
           </button>
 
-          <p className="text-center text-sm text-neutral-400">
+          <p className="text-center text-xs xs:text-sm text-neutral-400 pt-2">
             Don't have an account?{" "}
             <Link to="/register" className="text-[#cfe0ad] hover:underline font-medium">
               Create Account

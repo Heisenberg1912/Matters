@@ -126,23 +126,23 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#010101] flex flex-col items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-[#010101] flex flex-col items-center justify-start xs:justify-center px-4 py-6 xs:p-6 sm:p-8 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl"
+        className="w-full max-w-[340px] xs:max-w-sm sm:max-w-xl md:max-w-2xl"
       >
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4 xs:mb-6 sm:mb-8">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 xs:gap-2 text-xs xs:text-sm text-neutral-400 hover:text-white transition-colors mb-3 xs:mb-4"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
             Back to Login
           </Link>
-          <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-neutral-400">Join Matters - Construction Management Platform</p>
+          <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-white mb-1 xs:mb-2">Create Account</h1>
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400">Join Matters - Construction Management Platform</p>
         </div>
 
         {/* Registration Form */}
@@ -151,7 +151,7 @@ export default function Register() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
           onSubmit={handleSubmit}
-          className="space-y-6 bg-neutral-900/30 border border-neutral-800 rounded-2xl p-8"
+          className="space-y-4 xs:space-y-5 sm:space-y-6 bg-neutral-900/30 border border-neutral-800 rounded-xl xs:rounded-2xl p-4 xs:p-5 sm:p-6 md:p-8"
         >
           {error && (
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -161,47 +161,47 @@ export default function Register() {
 
           {/* Role Selection */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-3">
+            <label className="block text-xs xs:text-sm font-medium text-neutral-300 mb-2 xs:mb-3">
               I am a
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 xs:gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={() => handleRoleChange("user")}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                className={`p-3 xs:p-4 rounded-lg xs:rounded-xl border-2 transition-all duration-200 ${
                   formData.role === "user"
                     ? "bg-blue-500/20 border-blue-500/50 text-white"
                     : "bg-neutral-800/50 border-neutral-700 text-neutral-400 hover:border-neutral-600"
                 }`}
               >
-                <div className="flex flex-col items-center gap-2">
-                  <User className="w-6 h-6" />
-                  <span className="font-medium">Customer</span>
-                  <span className="text-xs text-neutral-500">Post jobs & hire contractors</span>
+                <div className="flex flex-col items-center gap-1.5 xs:gap-2">
+                  <User className="w-5 h-5 xs:w-6 xs:h-6" />
+                  <span className="text-sm xs:text-base font-medium">Customer</span>
+                  <span className="text-[0.65rem] xs:text-xs text-neutral-500 text-center">Post jobs & hire contractors</span>
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleRoleChange("contractor")}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                className={`p-3 xs:p-4 rounded-lg xs:rounded-xl border-2 transition-all duration-200 ${
                   formData.role === "contractor"
                     ? "bg-amber-500/20 border-amber-500/50 text-white"
                     : "bg-neutral-800/50 border-neutral-700 text-neutral-400 hover:border-neutral-600"
                 }`}
               >
-                <div className="flex flex-col items-center gap-2">
-                  <HardHat className="w-6 h-6" />
-                  <span className="font-medium">Contractor</span>
-                  <span className="text-xs text-neutral-500">Find jobs & manage projects</span>
+                <div className="flex flex-col items-center gap-1.5 xs:gap-2">
+                  <HardHat className="w-5 h-5 xs:w-6 xs:h-6" />
+                  <span className="text-sm xs:text-base font-medium">Contractor</span>
+                  <span className="text-[0.65rem] xs:text-xs text-neutral-500 text-center">Find jobs & manage projects</span>
                 </div>
               </button>
             </div>
           </div>
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-1">
+              <label htmlFor="name" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
                 Full Name <span className="text-red-400">*</span>
               </label>
               <input
@@ -210,13 +210,13 @@ export default function Register() {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
+                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
                 placeholder="John Doe"
                 required
               />
             </div>
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-neutral-300 mb-1">
+              <label htmlFor="phone" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
                 Phone Number
               </label>
               <input
@@ -225,14 +225,14 @@ export default function Register() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
+                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-1">
+            <label htmlFor="email" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
               Email <span className="text-red-400">*</span>
             </label>
             <input
@@ -241,15 +241,15 @@ export default function Register() {
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
+              className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
               placeholder="john@example.com"
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-1">
+              <label htmlFor="password" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
                 Password <span className="text-red-400">*</span>
               </label>
               <div className="relative">
@@ -259,21 +259,21 @@ export default function Register() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-12"
+                  className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-11 xs:pr-12"
                   placeholder="Min. 8 characters"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                  className="absolute right-2.5 xs:right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" /> : <Eye className="w-4 h-4 xs:w-5 xs:h-5" />}
                 </button>
               </div>
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-neutral-300 mb-1">
+              <label htmlFor="confirmPassword" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
                 Confirm Password <span className="text-red-400">*</span>
               </label>
               <div className="relative">
@@ -283,16 +283,16 @@ export default function Register() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-12"
+                  className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-11 xs:pr-12"
                   placeholder="Re-enter password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                  className="absolute right-2.5 xs:right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" /> : <Eye className="w-4 h-4 xs:w-5 xs:h-5" />}
                 </button>
               </div>
             </div>
@@ -300,11 +300,11 @@ export default function Register() {
 
           {/* Contractor-specific fields */}
           {formData.role === "contractor" && (
-            <div className="space-y-4 pt-4 border-t border-neutral-800">
-              <h3 className="text-lg font-semibold text-white">Contractor Information</h3>
+            <div className="space-y-3 xs:space-y-4 pt-3 xs:pt-4 border-t border-neutral-800">
+              <h3 className="text-base xs:text-lg font-semibold text-white">Contractor Information</h3>
 
               <div>
-                <label htmlFor="companyName" className="block text-sm font-medium text-neutral-300 mb-1">
+                <label htmlFor="companyName" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
                   Company Name
                 </label>
                 <input
@@ -313,22 +313,22 @@ export default function Register() {
                   name="companyName"
                   value={formData.company.name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
+                  className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors"
                   placeholder="Your Company LLC"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                <label className="block text-xs xs:text-sm font-medium text-neutral-300 mb-2">
                   Specializations <span className="text-red-400">*</span>
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 xs:gap-2">
                   {availableSpecializations.map(spec => (
                     <button
                       key={spec}
                       type="button"
                       onClick={() => handleSpecializationToggle(spec)}
-                      className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                      className={`px-2 xs:px-3 py-1.5 xs:py-2 rounded-lg text-[0.7rem] xs:text-xs sm:text-sm transition-all duration-200 ${
                         formData.specializations.includes(spec)
                           ? "bg-[#cfe0ad]/20 border-2 border-[#cfe0ad] text-white"
                           : "bg-neutral-800/50 border-2 border-neutral-700 text-neutral-400 hover:border-neutral-600"
@@ -345,19 +345,19 @@ export default function Register() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 bg-[#cfe0ad] text-black font-medium rounded-lg hover:bg-[#bfd09d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 xs:py-3 px-4 bg-[#cfe0ad] text-black text-sm xs:text-base font-medium rounded-lg hover:bg-[#bfd09d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Creating Account...
+                <Loader2 className="w-4 h-4 xs:w-5 xs:h-5 animate-spin" />
+                <span className="text-sm xs:text-base">Creating Account...</span>
               </>
             ) : (
               "Create Account"
             )}
           </button>
 
-          <p className="text-center text-sm text-neutral-400">
+          <p className="text-center text-xs xs:text-sm text-neutral-400 pt-1">
             Already have an account?{" "}
             <Link to="/login" className="text-[#cfe0ad] hover:underline">
               Sign in

@@ -82,10 +82,10 @@ export default function ResetPassword() {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-[#010101] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#cfe0ad] mx-auto mb-4" />
-          <p className="text-neutral-400">Verifying reset link...</p>
+          <Loader2 className="w-6 h-6 xs:w-8 xs:h-8 animate-spin text-[#cfe0ad] mx-auto mb-3 xs:mb-4" />
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400">Verifying reset link...</p>
         </div>
       </div>
     );
@@ -93,36 +93,36 @@ export default function ResetPassword() {
 
   if (!token || !isValidToken) {
     return (
-      <div className="min-h-screen bg-[#010101] flex flex-col items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-[#010101] flex flex-col items-center justify-center px-4 py-6 xs:p-6 sm:p-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md text-center"
+          className="w-full max-w-[340px] xs:max-w-sm sm:max-w-md text-center"
         >
-          <div className="mb-6 flex justify-center">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-red-400" />
+          <div className="mb-4 xs:mb-6 flex justify-center">
+            <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-red-500/20 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 text-red-400" />
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-white mb-3">Invalid Reset Link</h1>
-          <p className="text-neutral-400 mb-6">
+          <h1 className="text-xl xs:text-2xl font-bold text-white mb-2 xs:mb-3">Invalid Reset Link</h1>
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400 mb-4 xs:mb-6">
             {error || "Invalid or expired reset link"}
           </p>
-          <p className="text-neutral-500 text-sm mb-6">
+          <p className="text-neutral-500 text-[0.7rem] xs:text-xs sm:text-sm mb-4 xs:mb-6">
             This can happen if the link has expired (valid for 1 hour), was already used, or is incorrect.
           </p>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 xs:gap-3">
             <Link
               to="/forgot-password"
-              className="w-full py-3 px-4 bg-[#cfe0ad] text-black font-medium rounded-lg hover:bg-[#bfd09d] transition-colors"
+              className="w-full py-2.5 xs:py-3 px-4 bg-[#cfe0ad] text-black text-sm xs:text-base font-medium rounded-lg hover:bg-[#bfd09d] transition-colors min-h-[44px] flex items-center justify-center"
             >
               Request New Reset Link
             </Link>
             <Link
               to="/login"
-              className="text-neutral-400 hover:text-white transition-colors"
+              className="text-xs xs:text-sm text-neutral-400 hover:text-white transition-colors py-2"
             >
               Back to Login
             </Link>
@@ -134,30 +134,30 @@ export default function ResetPassword() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-[#010101] flex flex-col items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-[#010101] flex flex-col items-center justify-center px-4 py-6 xs:p-6 sm:p-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md text-center"
+          className="w-full max-w-[340px] xs:max-w-sm sm:max-w-md text-center"
         >
-          <div className="mb-6 flex justify-center">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-green-400" />
+          <div className="mb-4 xs:mb-6 flex justify-center">
+            <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-green-500/20 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 text-green-400" />
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-white mb-3">Password Reset Successful!</h1>
-          <p className="text-neutral-400 mb-6">
+          <h1 className="text-xl xs:text-2xl font-bold text-white mb-2 xs:mb-3">Password Reset Successful!</h1>
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400 mb-4 xs:mb-6">
             Your password has been reset successfully. You can now log in with your new password.
           </p>
 
-          <p className="text-sm text-neutral-500">
+          <p className="text-[0.7rem] xs:text-xs sm:text-sm text-neutral-500">
             Redirecting to login page in 3 seconds...
           </p>
 
           <Link
             to="/login"
-            className="inline-block mt-4 text-[#cfe0ad] hover:underline"
+            className="inline-block mt-3 xs:mt-4 text-xs xs:text-sm text-[#cfe0ad] hover:underline"
           >
             Go to Login Now
           </Link>
@@ -167,16 +167,16 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[#010101] flex flex-col items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-[#010101] flex flex-col items-center justify-center px-4 py-6 xs:p-6 sm:p-8">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-[340px] xs:max-w-sm sm:max-w-md"
       >
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Reset Your Password</h1>
-          <p className="text-neutral-400">Enter your new password below</p>
+        <div className="text-center mb-4 xs:mb-6 sm:mb-8">
+          <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-white mb-1 xs:mb-2">Reset Your Password</h1>
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400">Enter your new password below</p>
         </div>
 
         {/* Form */}
@@ -185,16 +185,16 @@ export default function ResetPassword() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
           onSubmit={handleSubmit}
-          className="space-y-6 bg-neutral-900/30 border border-neutral-800 rounded-2xl p-8"
+          className="space-y-4 xs:space-y-5 sm:space-y-6 bg-neutral-900/30 border border-neutral-800 rounded-xl xs:rounded-2xl p-4 xs:p-5 sm:p-6 md:p-8"
         >
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="p-2.5 xs:p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs xs:text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-1">
+            <label htmlFor="password" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
               New Password
             </label>
             <div className="relative">
@@ -203,22 +203,22 @@ export default function ResetPassword() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-12"
+                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-11 xs:pr-12"
                 placeholder="Min. 8 characters"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                className="absolute right-2.5 xs:right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" /> : <Eye className="w-4 h-4 xs:w-5 xs:h-5" />}
               </button>
             </div>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-neutral-300 mb-1">
+            <label htmlFor="confirmPassword" className="block text-xs xs:text-sm font-medium text-neutral-300 mb-1">
               Confirm New Password
             </label>
             <div className="relative">
@@ -227,16 +227,16 @@ export default function ResetPassword() {
                 id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-12"
+                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 transition-colors pr-11 xs:pr-12"
                 placeholder="Re-enter your password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                className="absolute right-2.5 xs:right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1"
               >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showConfirmPassword ? <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" /> : <Eye className="w-4 h-4 xs:w-5 xs:h-5" />}
               </button>
             </div>
           </div>
@@ -244,19 +244,19 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isLoading || !password || !confirmPassword}
-            className="w-full py-3 px-4 bg-[#cfe0ad] text-black font-medium rounded-lg hover:bg-[#bfd09d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 xs:py-3 px-4 bg-[#cfe0ad] text-black text-sm xs:text-base font-medium rounded-lg hover:bg-[#bfd09d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Resetting Password...
+                <Loader2 className="w-4 h-4 xs:w-5 xs:h-5 animate-spin" />
+                <span className="text-sm xs:text-base">Resetting Password...</span>
               </>
             ) : (
               "Reset Password"
             )}
           </button>
 
-          <p className="text-center text-sm text-neutral-400">
+          <p className="text-center text-xs xs:text-sm text-neutral-400 pt-1">
             Remember your password?{" "}
             <Link to="/login" className="text-[#cfe0ad] hover:underline font-medium">
               Sign in

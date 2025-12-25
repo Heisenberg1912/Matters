@@ -218,10 +218,10 @@ export default function PostJob() {
 
   if (loadingProjects) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-600 animate-pulse">Loading projects...</p>
+      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-3 xs:gap-4">
+          <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 border-4 border-[#cfe0ad] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400 animate-pulse">Loading projects...</p>
         </div>
       </div>
     );
@@ -234,22 +234,22 @@ export default function PostJob() {
         animate="animate"
         exit="exit"
         variants={pageVariants}
-        className="min-h-screen flex items-center justify-center px-4 pb-20"
+        className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4 pb-20"
       >
-        <Card className="p-8 text-center max-w-md w-full border-2 border-dashed">
+        <Card className="p-5 xs:p-6 sm:p-8 text-center max-w-[340px] xs:max-w-sm sm:max-w-md w-full border-2 border-dashed border-[#2a2a2a] bg-[#101010]">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
           >
-            <Briefcase className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <Briefcase className="h-12 w-12 xs:h-14 xs:w-14 sm:h-16 sm:w-16 mx-auto text-neutral-500 mb-3 xs:mb-4" />
           </motion.div>
-          <h3 className="text-xl font-semibold mb-2">No Projects Found</h3>
-          <p className="text-sm text-gray-600 mb-6">
+          <h3 className="text-base xs:text-lg sm:text-xl font-semibold text-white mb-1 xs:mb-2">No Projects Found</h3>
+          <p className="text-xs xs:text-sm text-neutral-400 mb-4 xs:mb-6">
             You need to create a project before posting a job.
           </p>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button onClick={() => navigate("/home")} size="lg">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button onClick={() => navigate("/home")} size="lg" className="bg-[#cfe0ad] text-black hover:bg-[#bfd09d] text-sm xs:text-base min-h-[44px]">
               Create Your First Project
             </Button>
           </motion.div>
@@ -259,42 +259,42 @@ export default function PostJob() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-24">
+    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10"
+        className="bg-[#0a0a0a] border-b border-[#1f1f1f] sticky top-0 z-10"
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3">
+        <div className="max-w-4xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-5 sm:py-6">
+          <div className="flex items-center gap-2 xs:gap-3">
             <motion.div
-              className="bg-blue-500/20 p-3 rounded-lg"
+              className="bg-[#cfe0ad]/20 p-2 xs:p-3 rounded-lg"
               whileHover={{ rotate: 5 }}
             >
-              <Briefcase className="w-6 h-6 text-blue-400" />
+              <Briefcase className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
             </motion.div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Post a New Job</h1>
-              <p className="text-gray-400 text-sm">Find the perfect contractor for your project</p>
+              <h1 className="text-lg xs:text-xl sm:text-2xl font-bold text-white">Post a New Job</h1>
+              <p className="text-xs xs:text-sm text-neutral-400">Find the perfect contractor for your project</p>
             </div>
           </div>
         </div>
       </motion.div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8">
         {/* Progress Steps */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-8"
+          className="mb-4 xs:mb-6 sm:mb-8"
         >
           <div className="relative">
             {/* Progress Line */}
-            <div className="absolute top-5 left-0 right-0 h-1 bg-gray-700 rounded-full">
+            <div className="absolute top-4 xs:top-5 left-0 right-0 h-0.5 xs:h-1 bg-[#1f1f1f] rounded-full">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                className="h-full bg-[#cfe0ad] rounded-full"
                 initial={{ width: "0%" }}
                 animate={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
                 transition={{ duration: 0.5 }}
@@ -317,24 +317,24 @@ export default function PostJob() {
                     transition={{ delay: 0.1 * step.id }}
                   >
                     <motion.div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      className={`w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
                         isCompleted
-                          ? "bg-green-500 text-white"
+                          ? "bg-[#cfe0ad] text-black"
                           : isCurrent
-                          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/50"
-                          : "bg-gray-700 border-2 border-gray-600 text-gray-400"
+                          ? "bg-[#cfe0ad] text-black shadow-lg shadow-[#cfe0ad]/30"
+                          : "bg-[#1a1a1a] border-2 border-[#2a2a2a] text-neutral-500"
                       }`}
-                      whileHover={{ scale: 1.1 }}
-                      animate={isCurrent ? { scale: [1, 1.1, 1] } : {}}
+                      whileHover={{ scale: 1.05 }}
+                      animate={isCurrent ? { scale: [1, 1.05, 1] } : {}}
                       transition={{ repeat: isCurrent ? Infinity : 0, duration: 2 }}
                     >
                       {isCompleted ? (
-                        <Check className="w-5 h-5" />
+                        <Check className="w-4 h-4 xs:w-5 xs:h-5" />
                       ) : (
-                        <StepIcon className="w-5 h-5" />
+                        <StepIcon className="w-4 h-4 xs:w-5 xs:h-5" />
                       )}
                     </motion.div>
-                    <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-blue-400" : "text-gray-400"}`}>
+                    <span className={`text-[0.6rem] xs:text-xs mt-1 xs:mt-2 font-medium hidden xs:block ${isCurrent ? "text-[#cfe0ad]" : "text-neutral-500"}`}>
                       {step.title}
                     </span>
                   </motion.div>
@@ -356,14 +356,14 @@ export default function PostJob() {
           >
             {/* Step 1: Project Selection */}
             {currentStep === 1 && (
-              <Card className="p-6 bg-gray-800/50 border-gray-700">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                  <MapPin className="w-6 h-6 text-blue-400" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2 text-white">
+                  <MapPin className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Select Your Project
                 </h2>
-                <p className="text-gray-400 mb-6">Which project is this job for?</p>
+                <p className="text-xs xs:text-sm text-neutral-400 mb-4 xs:mb-6">Which project is this job for?</p>
 
-                <div className="space-y-3">
+                <div className="space-y-2 xs:space-y-3">
                   {projects.map((project) => (
                     <motion.button
                       key={project._id}
@@ -374,17 +374,17 @@ export default function PostJob() {
                       }}
                       whileHover={{ scale: 1.02, x: 5 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                      className={`w-full p-3 xs:p-4 rounded-lg border-2 text-left transition-all min-h-[44px] ${
                         formData.projectId === project._id
-                          ? "border-blue-600 bg-blue-500/10 shadow-md"
-                          : "border-gray-600 hover:border-blue-400 bg-gray-700/30"
+                          ? "border-[#cfe0ad] bg-[#cfe0ad]/10 shadow-md"
+                          : "border-[#2a2a2a] hover:border-[#cfe0ad]/50 bg-[#1a1a1a]"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-white">{project.name}</p>
+                          <p className="text-sm xs:text-base font-semibold text-white">{project.name}</p>
                           {project.location?.city && (
-                            <p className="text-sm text-gray-400 flex items-center gap-1 mt-1">
+                            <p className="text-xs xs:text-sm text-neutral-400 flex items-center gap-1 mt-1">
                               <MapPin className="w-3 h-3" />
                               {project.location.city}
                               {project.location.state && `, ${project.location.state}`}
@@ -395,9 +395,9 @@ export default function PostJob() {
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="bg-blue-600 rounded-full p-1"
+                            className="bg-[#cfe0ad] rounded-full p-1"
                           >
-                            <Check className="w-5 h-5 text-white" />
+                            <Check className="w-4 h-4 xs:w-5 xs:h-5 text-black" />
                           </motion.div>
                         )}
                       </div>
@@ -408,7 +408,7 @@ export default function PostJob() {
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-red-500 text-sm mt-2"
+                    className="text-red-400 text-xs xs:text-sm mt-2"
                   >
                     {errors.projectId}
                   </motion.p>
@@ -418,15 +418,15 @@ export default function PostJob() {
 
             {/* Step 2: Job Details */}
             {currentStep === 2 && (
-              <Card className="p-6 bg-gray-800/50 border-gray-700 space-y-5">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                  <FileText className="w-6 h-6 text-blue-400" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a] space-y-4 xs:space-y-5">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2 text-white">
+                  <FileText className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Job Details
                 </h2>
 
                 <div>
-                  <Label htmlFor="title" className="flex items-center gap-2">
-                    Job Title <span className="text-red-500">*</span>
+                  <Label htmlFor="title" className="flex items-center gap-2 text-sm xs:text-base">
+                    Job Title <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="title"
@@ -436,13 +436,13 @@ export default function PostJob() {
                       setFormData((prev) => ({ ...prev, title: e.target.value }));
                       setErrors((prev) => ({ ...prev, title: "" }));
                     }}
-                    className={`mt-1 ${errors.title ? "border-red-500" : ""}`}
+                    className={`mt-1 text-sm xs:text-base min-h-[44px] ${errors.title ? "border-red-400" : ""}`}
                   />
                   {errors.title && (
                     <motion.p
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-red-500 text-sm mt-1"
+                      className="text-red-400 text-xs xs:text-sm mt-1"
                     >
                       {errors.title}
                     </motion.p>
@@ -450,8 +450,8 @@ export default function PostJob() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description" className="flex items-center gap-2">
-                    Description <span className="text-red-500">*</span>
+                  <Label htmlFor="description" className="flex items-center gap-2 text-sm xs:text-base">
+                    Description <span className="text-red-400">*</span>
                   </Label>
                   <Textarea
                     id="description"
@@ -462,27 +462,27 @@ export default function PostJob() {
                       setErrors((prev) => ({ ...prev, description: "" }));
                     }}
                     rows={6}
-                    className={`mt-1 ${errors.description ? "border-red-500" : ""}`}
+                    className={`mt-1 text-sm xs:text-base ${errors.description ? "border-red-400" : ""}`}
                   />
                   <div className="flex justify-between items-center mt-1">
                     {errors.description ? (
                       <motion.p
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-500 text-sm"
+                        className="text-red-400 text-xs xs:text-sm"
                       >
                         {errors.description}
                       </motion.p>
                     ) : (
-                      <p className="text-xs text-gray-500">Be as detailed as possible</p>
+                      <p className="text-[0.65rem] xs:text-xs text-neutral-500">Be as detailed as possible</p>
                     )}
-                    <p className="text-xs text-gray-500">{formData.description.length} characters</p>
+                    <p className="text-[0.65rem] xs:text-xs text-neutral-500">{formData.description.length} characters</p>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="mb-3 block">Work Type</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <Label className="mb-2 xs:mb-3 block text-sm xs:text-base">Work Type</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 xs:gap-3">
                     {WORK_TYPES.map((type) => (
                       <motion.button
                         key={type.value}
@@ -492,13 +492,13 @@ export default function PostJob() {
                         }
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`p-4 rounded-lg border-2 text-sm transition-all ${
+                        className={`p-3 xs:p-4 rounded-lg border-2 text-xs xs:text-sm transition-all min-h-[44px] ${
                           formData.workType === type.value
-                            ? "border-blue-600 bg-blue-500/10 shadow-md text-white"
-                            : "border-gray-600 hover:border-blue-400 bg-gray-700/30 text-gray-300"
+                            ? "border-[#cfe0ad] bg-[#cfe0ad]/10 shadow-md text-white"
+                            : "border-[#2a2a2a] hover:border-[#cfe0ad]/50 bg-[#1a1a1a] text-neutral-300"
                         }`}
                       >
-                        <div className="text-2xl mb-2">{type.icon}</div>
+                        <div className="text-xl xs:text-2xl mb-1 xs:mb-2">{type.icon}</div>
                         <div className="font-medium">{type.label}</div>
                       </motion.button>
                     ))}
@@ -509,15 +509,15 @@ export default function PostJob() {
 
             {/* Step 3: Budget */}
             {currentStep === 3 && (
-              <Card className="p-6 bg-gray-800/50 border-gray-700 space-y-5">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                  <DollarSign className="w-6 h-6 text-blue-400" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a] space-y-4 xs:space-y-5">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2 text-white">
+                  <DollarSign className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Set Your Budget
                 </h2>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 xs:gap-4">
                   <div>
-                    <Label htmlFor="budgetMin">Minimum Budget (₹)</Label>
+                    <Label htmlFor="budgetMin" className="text-sm xs:text-base">Minimum Budget (₹)</Label>
                     <Input
                       id="budgetMin"
                       type="number"
@@ -527,11 +527,11 @@ export default function PostJob() {
                         setFormData((prev) => ({ ...prev, budgetMin: e.target.value }));
                         setErrors((prev) => ({ ...prev, budget: "" }));
                       }}
-                      className="mt-1"
+                      className="mt-1 text-sm xs:text-base min-h-[44px]"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="budgetMax">Maximum Budget (₹)</Label>
+                    <Label htmlFor="budgetMax" className="text-sm xs:text-base">Maximum Budget (₹)</Label>
                     <Input
                       id="budgetMax"
                       type="number"
@@ -541,7 +541,7 @@ export default function PostJob() {
                         setFormData((prev) => ({ ...prev, budgetMax: e.target.value }));
                         setErrors((prev) => ({ ...prev, budget: "" }));
                       }}
-                      className="mt-1"
+                      className="mt-1 text-sm xs:text-base min-h-[44px]"
                     />
                   </div>
                 </div>
@@ -550,7 +550,7 @@ export default function PostJob() {
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-red-500 text-sm"
+                    className="text-red-400 text-xs xs:text-sm"
                   >
                     {errors.budget}
                   </motion.p>
@@ -560,11 +560,11 @@ export default function PostJob() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4"
+                    className="bg-[#cfe0ad]/10 border border-[#cfe0ad]/20 rounded-lg p-3 xs:p-4"
                   >
-                    <p className="text-sm text-gray-300">
+                    <p className="text-xs xs:text-sm text-neutral-300">
                       Your budget range:{" "}
-                      <span className="font-bold text-blue-400">
+                      <span className="font-bold text-[#cfe0ad]">
                         ₹{parseInt(formData.budgetMin).toLocaleString("en-IN")} - ₹
                         {parseInt(formData.budgetMax).toLocaleString("en-IN")}
                       </span>
@@ -572,8 +572,8 @@ export default function PostJob() {
                   </motion.div>
                 )}
 
-                <div className="bg-gray-700/30 border border-gray-600 rounded-lg p-4">
-                  <p className="text-sm text-gray-300">
+                <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 xs:p-4">
+                  <p className="text-xs xs:text-sm text-neutral-300">
                     💡 <strong>Tip:</strong> A realistic budget attracts quality contractors and
                     increases your chances of getting better bids.
                   </p>
@@ -583,16 +583,16 @@ export default function PostJob() {
 
             {/* Step 4: Specializations */}
             {currentStep === 4 && (
-              <Card className="p-6 bg-gray-800/50 border-gray-700 space-y-5">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                  <Wrench className="w-6 h-6 text-blue-400" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a] space-y-4 xs:space-y-5">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2 text-white">
+                  <Wrench className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Required Skills
                 </h2>
-                <p className="text-gray-400">
+                <p className="text-xs xs:text-sm text-neutral-400">
                   Select the specializations needed for this job
                 </p>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 xs:gap-3">
                   {SPECIALIZATIONS.map((spec) => (
                     <motion.button
                       key={spec}
@@ -603,14 +603,14 @@ export default function PostJob() {
                       }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      className={`px-3 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm font-medium transition-all min-h-[36px] xs:min-h-[40px] ${
                         formData.specializations.includes(spec)
-                          ? "bg-blue-600 text-white shadow-md"
-                          : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+                          ? "bg-[#cfe0ad] text-black shadow-md"
+                          : "bg-[#1a1a1a] text-neutral-300 hover:bg-[#252525] border border-[#2a2a2a]"
                       }`}
                     >
                       {formData.specializations.includes(spec) && (
-                        <Check className="w-4 h-4 inline mr-1" />
+                        <Check className="w-3 h-3 xs:w-4 xs:h-4 inline mr-1" />
                       )}
                       {spec}
                     </motion.button>
@@ -621,7 +621,7 @@ export default function PostJob() {
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-red-500 text-sm"
+                    className="text-red-400 text-xs xs:text-sm"
                   >
                     {errors.specializations}
                   </motion.p>
@@ -631,10 +631,10 @@ export default function PostJob() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-green-500/10 border border-green-500/20 rounded-lg p-4"
+                    className="bg-[#cfe0ad]/10 border border-[#cfe0ad]/20 rounded-lg p-3 xs:p-4"
                   >
-                    <p className="text-sm text-gray-300">
-                      <CheckCircle2 className="w-4 h-4 inline text-green-400 mr-1" />
+                    <p className="text-xs xs:text-sm text-neutral-300">
+                      <CheckCircle2 className="w-3 h-3 xs:w-4 xs:h-4 inline text-[#cfe0ad] mr-1" />
                       <strong>{formData.specializations.length}</strong> skill
                       {formData.specializations.length !== 1 ? "s" : ""} selected
                     </p>
@@ -645,15 +645,15 @@ export default function PostJob() {
 
             {/* Step 5: Timeline */}
             {currentStep === 5 && (
-              <Card className="p-6 bg-gray-800/50 border-gray-700 space-y-5">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                  <Calendar className="w-6 h-6 text-blue-400" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a] space-y-4 xs:space-y-5">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2 text-white">
+                  <Calendar className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Project Timeline
                 </h2>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 xs:gap-4">
                   <div>
-                    <Label htmlFor="startDate">Expected Start Date</Label>
+                    <Label htmlFor="startDate" className="text-sm xs:text-base">Expected Start Date</Label>
                     <Input
                       id="startDate"
                       type="date"
@@ -661,12 +661,12 @@ export default function PostJob() {
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, startDate: e.target.value }))
                       }
-                      className="mt-1"
+                      className="mt-1 text-sm xs:text-base min-h-[44px]"
                       min={new Date().toISOString().split("T")[0]}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="duration">Estimated Duration</Label>
+                    <Label htmlFor="duration" className="text-sm xs:text-base">Estimated Duration</Label>
                     <Input
                       id="duration"
                       placeholder="e.g., 2 weeks, 1 month"
@@ -674,56 +674,56 @@ export default function PostJob() {
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, duration: e.target.value }))
                       }
-                      className="mt-1"
+                      className="mt-1 text-sm xs:text-base min-h-[44px]"
                     />
                   </div>
                 </div>
 
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                  <p className="text-sm text-gray-300">
+                <div className="bg-[#cfe0ad]/10 border border-[#cfe0ad]/20 rounded-lg p-3 xs:p-4">
+                  <p className="text-xs xs:text-sm text-neutral-300">
                     ℹ️ These fields are optional but help contractors plan their schedule better.
                   </p>
                 </div>
 
                 {/* Summary */}
-                <div className="mt-6 bg-gray-700/30 rounded-lg p-5 border-2 border-dashed border-gray-600">
-                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <div className="mt-4 xs:mt-6 bg-[#1a1a1a] rounded-lg p-4 xs:p-5 border-2 border-dashed border-[#2a2a2a]">
+                  <h3 className="text-sm xs:text-base font-bold text-white mb-3 xs:mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 xs:w-5 xs:h-5 text-[#cfe0ad]" />
                     Review Your Job Posting
                   </h3>
-                  <div className="space-y-3 text-sm">
+                  <div className="space-y-2 xs:space-y-3 text-xs xs:text-sm">
                     <div>
-                      <p className="text-gray-400">Project</p>
+                      <p className="text-neutral-500">Project</p>
                       <p className="font-semibold text-white">
                         {projects.find((p) => p._id === formData.projectId)?.name}
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-400">Job Title</p>
+                      <p className="text-neutral-500">Job Title</p>
                       <p className="font-semibold text-white">{formData.title}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400">Work Type</p>
+                      <p className="text-neutral-500">Work Type</p>
                       <p className="font-semibold text-white">
                         {WORK_TYPES.find((t) => t.value === formData.workType)?.label}
                       </p>
                     </div>
                     {formData.budgetMin && formData.budgetMax && (
                       <div>
-                        <p className="text-gray-400">Budget Range</p>
-                        <p className="font-semibold text-green-400">
+                        <p className="text-neutral-500">Budget Range</p>
+                        <p className="font-semibold text-[#cfe0ad]">
                           ₹{parseInt(formData.budgetMin).toLocaleString("en-IN")} - ₹
                           {parseInt(formData.budgetMax).toLocaleString("en-IN")}
                         </p>
                       </div>
                     )}
                     <div>
-                      <p className="text-gray-400">Required Skills</p>
+                      <p className="text-neutral-500">Required Skills</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {formData.specializations.map((spec) => (
                           <span
                             key={spec}
-                            className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs"
+                            className="px-2 py-0.5 xs:py-1 bg-[#cfe0ad]/20 text-[#cfe0ad] rounded-full text-[0.65rem] xs:text-xs"
                           >
                             {spec}
                           </span>
@@ -742,7 +742,7 @@ export default function PostJob() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center justify-between mt-8"
+          className="flex items-center justify-between mt-6 xs:mt-8"
         >
           {currentStep > 1 ? (
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -750,9 +750,9 @@ export default function PostJob() {
                 type="button"
                 variant="outline"
                 onClick={handlePrevious}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5 xs:gap-2 text-xs xs:text-sm min-h-[44px] border-[#2a2a2a] hover:bg-[#1a1a1a]"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                 Previous
               </Button>
             </motion.div>
@@ -765,10 +765,10 @@ export default function PostJob() {
               <Button
                 type="button"
                 onClick={handleNext}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                className="flex items-center gap-1.5 xs:gap-2 text-xs xs:text-sm min-h-[44px] bg-[#cfe0ad] text-black hover:bg-[#bfd09d]"
               >
                 Next
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
               </Button>
             </motion.div>
           ) : (
@@ -777,17 +777,17 @@ export default function PostJob() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg"
+                className="flex items-center gap-1.5 xs:gap-2 text-xs xs:text-sm min-h-[44px] bg-[#cfe0ad] text-black hover:bg-[#bfd09d] shadow-lg disabled:opacity-50"
                 size="lg"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 xs:w-5 xs:h-5 animate-spin" />
                     Posting...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 className="w-4 h-4 xs:w-5 xs:h-5" />
                     Post Job
                   </>
                 )}
