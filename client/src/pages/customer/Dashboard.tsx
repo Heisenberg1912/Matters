@@ -63,30 +63,30 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const [jobsResponse, projectsResponse] = await Promise.all([
-        api.jobsApi.getMyPostings(),
-        api.projectsApi.getAll(),
+        api.jobs.getMyPostings(),
+        api.projects.getAll(),
       ]);
 
-      const jobs = jobsResponse.data.jobs || [];
-      const projects = projectsResponse.data || [];
+      const jobs = (jobsResponse.data?.jobs || []) as Job[];
+      const projects = (projectsResponse.data?.projects || []) as Project[];
 
       // Calculate stats
-      const activeJobs = jobs.filter((j: Job) => j.status === 'open' || j.status === 'in_progress').length;
-      const completedJobs = jobs.filter((j: Job) => j.status === 'completed').length;
-      const pendingBids = jobs.reduce((sum: number, j: Job) => sum + (j.bidCount || 0), 0);
+      const activeJobsCount = jobs.filter((j) => j.status === 'open' || j.status === 'in_progress').length;
+      const completedJobsCount = jobs.filter((j) => j.status === 'completed').length;
+      const pendingBidsCount = jobs.reduce((sum, j) => sum + (j.bidCount || 0), 0);
 
       setStats({
         totalProjects: projects.length,
-        activeJobs,
-        pendingBids,
-        completedJobs,
+        activeJobs: activeJobsCount,
+        pendingBids: pendingBidsCount,
+        completedJobs: completedJobsCount,
       });
 
       // Get recent jobs (last 5)
       setRecentJobs(jobs.slice(0, 5));
 
       // Get active projects
-      setActiveProjects(projects.filter((p: Project) => p.status === 'in_progress' || p.status === 'planning').slice(0, 4));
+      setActiveProjects(projects.filter((p) => p.status === 'in_progress' || p.status === 'planning').slice(0, 4));
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -254,7 +254,7 @@ const Dashboard = () => {
           className="bg-gradient-to-r from-[#1a2a1a] to-[#0a150a] rounded-xl xs:rounded-2xl border border-[#2a2a2a] p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white"
         >
           <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 xs:gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 xs:gap-3 sm:gap-4">
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Link
                 to="/customer/post-job"
@@ -271,6 +271,15 @@ const Dashboard = () => {
               >
                 <FileText className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 text-[#cfe0ad]" />
                 <span className="text-sm xs:text-base font-medium">Review Bids</span>
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Link
+                to="/customer/progress"
+                className="flex items-center gap-2 xs:gap-3 bg-[#cfe0ad]/10 backdrop-blur-sm rounded-lg xs:rounded-xl p-3 xs:p-4 hover:bg-[#cfe0ad]/20 transition-all border border-[#cfe0ad]/20 min-h-[44px]"
+              >
+                <Activity className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 text-[#cfe0ad]" />
+                <span className="text-sm xs:text-base font-medium">Track Progress</span>
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

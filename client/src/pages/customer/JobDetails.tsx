@@ -94,7 +94,9 @@ export default function JobDetails() {
       setLoading(true);
       const response = await jobsApi.getById(jobId);
       if (response.success && response.data) {
-        setJob(response.data.job);
+        // API returns job data directly or as response.data
+        const jobData = (response.data as unknown as JobData) || response.data;
+        setJob(jobData);
       }
     } catch (error) {
       console.error("Error loading job details:", error);
@@ -149,10 +151,10 @@ export default function JobDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-16 h-16 animate-spin text-blue-600" />
-          <p className="text-gray-600 animate-pulse">Loading job details...</p>
+      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-3 xs:gap-4">
+          <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 border-4 border-[#cfe0ad] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400 animate-pulse">Loading job details...</p>
         </div>
       </div>
     );
@@ -160,53 +162,53 @@ export default function JobDetails() {
 
   if (!job) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <Card className="p-8 text-center max-w-md">
-          <AlertCircle className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Job Not Found</h3>
-          <p className="text-gray-600 mb-4">The job you're looking for doesn't exist</p>
-          <Button onClick={() => navigate("/customer/bids")}>Back to Jobs</Button>
+      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
+        <Card className="p-6 xs:p-8 text-center max-w-md bg-[#101010] border-[#2a2a2a]">
+          <AlertCircle className="w-14 h-14 xs:w-16 xs:h-16 mx-auto text-neutral-600 mb-4" />
+          <h3 className="text-lg xs:text-xl font-semibold text-white mb-2">Job Not Found</h3>
+          <p className="text-neutral-400 text-sm xs:text-base mb-4">The job you're looking for doesn't exist</p>
+          <Button onClick={() => navigate("/customer/bids")} className="bg-[#cfe0ad] text-black hover:bg-[#bfd09d]">Back to Jobs</Button>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white shadow-sm border-b sticky top-0 z-10"
+        className="bg-[#0a0a0a] border-b border-[#1f1f1f] sticky top-0 z-10"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-5 sm:py-6">
+          <div className="flex items-start xs:items-center gap-3 xs:gap-4">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate("/customer/bids")}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-neutral-400 hover:text-white mt-1 xs:mt-0"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5 xs:w-6 xs:h-6" />
             </motion.button>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-1 xs:mb-2">
+                <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-white truncate">{job.title}</h1>
                 <StatusBadge status={job.status} />
               </div>
-              <p className="text-gray-600">Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
+              <p className="text-xs xs:text-sm text-neutral-400">Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="hidden xs:flex items-center gap-2">
               {job.status === "open" && (
                 <>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="outline" onClick={() => navigate(`/customer/post-job?edit=${job._id}`)}>
+                    <Button variant="outline" onClick={() => navigate(`/customer/post-job?edit=${job._id}`)} className="border-[#2a2a2a] hover:bg-[#1a1a1a] text-white">
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
                   </motion.div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="outline" onClick={() => setShowDeleteDialog(true)} className="text-red-600 border-red-300 hover:bg-red-50">
+                    <Button variant="outline" onClick={() => setShowDeleteDialog(true)} className="text-red-400 border-red-400/30 hover:bg-red-400/10">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Cancel
                     </Button>
@@ -218,69 +220,69 @@ export default function JobDetails() {
         </div>
       </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-6 sm:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 xs:space-y-6">
             {/* Job Description */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-blue-600" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold text-white mb-3 xs:mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Job Description
                 </h2>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{job.description}</p>
+                <p className="text-neutral-300 text-sm xs:text-base leading-relaxed whitespace-pre-wrap">{job.description}</p>
               </Card>
             </motion.div>
 
             {/* Job Details */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Briefcase className="w-6 h-6 text-blue-600" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                <h2 className="text-base xs:text-lg sm:text-xl font-bold text-white mb-3 xs:mb-4 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                   Job Details
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-gray-600 mb-2">
-                      <DollarSign className="w-5 h-5" />
-                      <span className="text-sm font-medium">Budget</span>
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 xs:gap-4">
+                  <div className="bg-[#1a1a1a] rounded-lg p-3 xs:p-4 border border-[#2a2a2a]">
+                    <div className="flex items-center gap-2 text-neutral-400 mb-2">
+                      <DollarSign className="w-4 h-4 xs:w-5 xs:h-5" />
+                      <span className="text-xs xs:text-sm font-medium">Budget</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-base xs:text-lg font-bold text-[#cfe0ad]">
                       {formatCurrency(job.budget.min)} - {formatCurrency(job.budget.max)}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">{job.budget.type}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{job.budget.type}</p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-gray-600 mb-2">
-                      <Briefcase className="w-5 h-5" />
-                      <span className="text-sm font-medium">Work Type</span>
+                  <div className="bg-[#1a1a1a] rounded-lg p-3 xs:p-4 border border-[#2a2a2a]">
+                    <div className="flex items-center gap-2 text-neutral-400 mb-2">
+                      <Briefcase className="w-4 h-4 xs:w-5 xs:h-5" />
+                      <span className="text-xs xs:text-sm font-medium">Work Type</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900 capitalize">
+                    <p className="text-base xs:text-lg font-bold text-white capitalize">
                       {job.workType.replace("_", " ")}
                     </p>
                   </div>
 
                   {job.timeline?.startDate && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 text-gray-600 mb-2">
-                        <Calendar className="w-5 h-5" />
-                        <span className="text-sm font-medium">Start Date</span>
+                    <div className="bg-[#1a1a1a] rounded-lg p-3 xs:p-4 border border-[#2a2a2a]">
+                      <div className="flex items-center gap-2 text-neutral-400 mb-2">
+                        <Calendar className="w-4 h-4 xs:w-5 xs:h-5" />
+                        <span className="text-xs xs:text-sm font-medium">Start Date</span>
                       </div>
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-base xs:text-lg font-bold text-white">
                         {new Date(job.timeline.startDate).toLocaleDateString()}
                       </p>
                     </div>
                   )}
 
                   {job.timeline?.duration && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 text-gray-600 mb-2">
-                        <Clock className="w-5 h-5" />
-                        <span className="text-sm font-medium">Duration</span>
+                    <div className="bg-[#1a1a1a] rounded-lg p-3 xs:p-4 border border-[#2a2a2a]">
+                      <div className="flex items-center gap-2 text-neutral-400 mb-2">
+                        <Clock className="w-4 h-4 xs:w-5 xs:h-5" />
+                        <span className="text-xs xs:text-sm font-medium">Duration</span>
                       </div>
-                      <p className="text-lg font-bold text-gray-900">{job.timeline.duration}</p>
+                      <p className="text-base xs:text-lg font-bold text-white">{job.timeline.duration}</p>
                     </div>
                   )}
                 </div>
@@ -290,9 +292,9 @@ export default function JobDetails() {
             {/* Required Skills */}
             {job.requiredSpecializations.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card className="p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Award className="w-6 h-6 text-blue-600" />
+                <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                  <h2 className="text-base xs:text-lg sm:text-xl font-bold text-white mb-3 xs:mb-4 flex items-center gap-2">
+                    <Award className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                     Required Skills
                   </h2>
                   <div className="flex flex-wrap gap-2">
@@ -302,7 +304,7 @@ export default function JobDetails() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.3 + index * 0.05 }}
-                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                        className="px-3 xs:px-4 py-1.5 xs:py-2 bg-[#cfe0ad]/20 text-[#cfe0ad] rounded-full text-xs xs:text-sm font-medium"
                       >
                         {skill}
                       </motion.span>
@@ -315,20 +317,20 @@ export default function JobDetails() {
             {/* Assigned Contractor */}
             {job.assignedContractor && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <Card className="p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Users className="w-6 h-6 text-green-600" />
+                <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                  <h2 className="text-base xs:text-lg sm:text-xl font-bold text-white mb-3 xs:mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 xs:w-6 xs:h-6 text-green-400" />
                     Assigned Contractor
                   </h2>
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border-2 border-green-200">
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold">
+                  <div className="bg-gradient-to-r from-[#0a1a0a] to-[#0a0a1a] rounded-xl p-4 xs:p-5 sm:p-6 border border-green-500/20">
+                    <div className="flex flex-col xs:flex-row items-start gap-3 xs:gap-4">
+                      <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white text-lg xs:text-xl sm:text-2xl font-bold shrink-0">
                         {job.assignedContractor.name.charAt(0)}
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900">{job.assignedContractor.name}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg xs:text-xl font-bold text-white">{job.assignedContractor.name}</h3>
                         {job.assignedContractor.company?.name && (
-                          <p className="text-gray-600 flex items-center gap-2 mt-1">
+                          <p className="text-neutral-400 text-sm flex items-center gap-2 mt-1">
                             <Building2 className="w-4 h-4" />
                             {job.assignedContractor.company.name}
                           </p>
@@ -342,20 +344,20 @@ export default function JobDetails() {
                                   className={`w-4 h-4 ${
                                     i < Math.round(job.assignedContractor!.rating!.average)
                                       ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
+                                      : "text-neutral-600"
                                   }`}
                                 />
                               ))}
                             </div>
-                            <span className="text-sm font-medium">
+                            <span className="text-sm font-medium text-neutral-300">
                               {job.assignedContractor.rating.average.toFixed(1)} ({job.assignedContractor.rating.count} reviews)
                             </span>
                           </div>
                         )}
-                        <div className="flex gap-3 mt-4">
+                        <div className="flex flex-wrap gap-2 xs:gap-3 mt-3 xs:mt-4">
                           <a
                             href={`mailto:${job.assignedContractor.email}`}
-                            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-2 px-3 xs:px-4 py-2 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] hover:bg-[#252525] transition-colors text-white text-sm"
                           >
                             <Mail className="w-4 h-4" />
                             Email
@@ -363,7 +365,7 @@ export default function JobDetails() {
                           {job.assignedContractor.phone && (
                             <a
                               href={`tel:${job.assignedContractor.phone}`}
-                              className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                              className="flex items-center gap-2 px-3 xs:px-4 py-2 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] hover:bg-[#252525] transition-colors text-white text-sm"
                             >
                               <Phone className="w-4 h-4" />
                               Call
@@ -380,23 +382,23 @@ export default function JobDetails() {
             {/* Communication */}
             {job.assignedContractor && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                <Card className="p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <MessageSquare className="w-6 h-6 text-blue-600" />
+                <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                  <h2 className="text-base xs:text-lg sm:text-xl font-bold text-white mb-3 xs:mb-4 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 xs:w-6 xs:h-6 text-[#cfe0ad]" />
                     Send Message
                   </h2>
-                  <div className="space-y-4">
+                  <div className="space-y-3 xs:space-y-4">
                     <Textarea
                       placeholder="Type your message to the contractor..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={4}
-                      className="resize-none"
+                      className="resize-none bg-[#1a1a1a] border-[#2a2a2a] text-white placeholder:text-neutral-500"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!message.trim() || sending}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                      className="w-full bg-[#cfe0ad] text-black hover:bg-[#bfd09d]"
                     >
                       {sending ? (
                         <>
@@ -417,18 +419,18 @@ export default function JobDetails() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 xs:space-y-6">
             {/* Project Info */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <Card className="p-6">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-blue-600" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                <h3 className="font-bold text-white mb-3 xs:mb-4 flex items-center gap-2 text-sm xs:text-base">
+                  <Building2 className="w-4 h-4 xs:w-5 xs:h-5 text-[#cfe0ad]" />
                   Project
                 </h3>
-                <p className="text-gray-900 font-medium">{job.project.name}</p>
+                <p className="text-white font-medium text-sm xs:text-base">{job.project.name}</p>
                 {job.location && (
-                  <p className="text-gray-600 text-sm mt-2 flex items-start gap-2">
-                    <MapPin className="w-4 h-4 mt-0.5" />
+                  <p className="text-neutral-400 text-xs xs:text-sm mt-2 flex items-start gap-2">
+                    <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
                     {job.location.address || job.location.city}
                   </p>
                 )}
@@ -437,25 +439,25 @@ export default function JobDetails() {
 
             {/* Bids Summary */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="p-6">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                <h3 className="font-bold text-white mb-3 xs:mb-4 flex items-center gap-2 text-sm xs:text-base">
+                  <TrendingUp className="w-4 h-4 xs:w-5 xs:h-5 text-purple-400" />
                   Bids Summary
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2 xs:space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Total Bids</span>
-                    <span className="text-2xl font-bold text-gray-900">{job.bidCount}</span>
+                    <span className="text-neutral-400 text-sm">Total Bids</span>
+                    <span className="text-xl xs:text-2xl font-bold text-white">{job.bidCount}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Pending</span>
-                    <span className="text-lg font-semibold text-orange-600">
+                    <span className="text-neutral-400 text-sm">Pending</span>
+                    <span className="text-base xs:text-lg font-semibold text-orange-400">
                       {job.bids.filter((b) => b.status === "pending").length}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Accepted</span>
-                    <span className="text-lg font-semibold text-green-600">
+                    <span className="text-neutral-400 text-sm">Accepted</span>
+                    <span className="text-base xs:text-lg font-semibold text-green-400">
                       {job.bids.filter((b) => b.status === "accepted").length}
                     </span>
                   </div>
@@ -464,7 +466,7 @@ export default function JobDetails() {
                   <Button
                     onClick={() => navigate("/customer/bids")}
                     variant="outline"
-                    className="w-full mt-4"
+                    className="w-full mt-4 border-[#2a2a2a] hover:bg-[#1a1a1a] text-white text-sm"
                   >
                     View All Bids
                   </Button>
@@ -474,13 +476,13 @@ export default function JobDetails() {
 
             {/* Quick Actions */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+              <Card className="p-4 xs:p-5 sm:p-6 bg-[#101010] border-[#2a2a2a]">
+                <h3 className="font-bold text-white mb-3 xs:mb-4 text-sm xs:text-base">Quick Actions</h3>
                 <div className="space-y-2">
                   <Button
                     onClick={() => navigate("/customer/progress")}
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start border-[#2a2a2a] hover:bg-[#1a1a1a] text-white text-sm"
                   >
                     <TrendingUp className="w-4 h-4 mr-2" />
                     View Progress
@@ -488,7 +490,7 @@ export default function JobDetails() {
                   <Button
                     onClick={() => navigate(`/home?project=${job.project._id}`)}
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start border-[#2a2a2a] hover:bg-[#1a1a1a] text-white text-sm"
                   >
                     <Building2 className="w-4 h-4 mr-2" />
                     View Project

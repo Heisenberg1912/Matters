@@ -177,35 +177,35 @@ export default function ViewBids() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-600 animate-pulse">Loading your jobs...</p>
+      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-3 xs:gap-4">
+          <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 border-4 border-[#cfe0ad] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs xs:text-sm sm:text-base text-neutral-400 animate-pulse">Loading your jobs...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white shadow-sm border-b sticky top-0 z-10"
+        className="bg-[#0a0a0a] border-b border-[#1f1f1f] sticky top-0 z-10"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-5 sm:py-6">
+          <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Jobs & Bids</h1>
-              <p className="text-gray-600 mt-1">Manage your job postings and review contractor bids</p>
+              <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-white">My Jobs & Bids</h1>
+              <p className="text-xs xs:text-sm text-neutral-400 mt-0.5 xs:mt-1">Manage your job postings and review contractor bids</p>
             </div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={() => navigate("/customer/post-job")}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md"
+                className="flex items-center gap-1.5 xs:gap-2 bg-[#cfe0ad] text-black hover:bg-[#bfd09d] text-sm xs:text-base min-h-[44px]"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 xs:w-5 xs:h-5" />
                 Post New Job
               </Button>
             </motion.div>
@@ -213,65 +213,65 @@ export default function ViewBids() {
         </div>
       </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8">
         {/* Stats Cards */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-2 xs:gap-3 sm:gap-4 mb-4 xs:mb-6 sm:mb-8"
         >
           <motion.div variants={itemVariants}>
-            <Card className="p-5 border-l-4 border-l-blue-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Total Jobs</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+            <Card className="p-3 xs:p-4 sm:p-5 border-l-4 border-l-blue-500 bg-[#101010] border-[#2a2a2a]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[0.65rem] xs:text-xs sm:text-sm text-neutral-400 font-medium">Total Jobs</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white mt-1">{stats.total}</p>
                 </div>
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <Briefcase className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <Card className="p-5 border-l-4 border-l-green-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Open Jobs</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.open}</p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <Clock className="w-6 h-6 text-green-600" />
+                <div className="bg-blue-500/20 p-2 xs:p-3 rounded-lg shrink-0">
+                  <Briefcase className="w-5 h-5 xs:w-6 xs:h-6 text-blue-400" />
                 </div>
               </div>
             </Card>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="p-5 border-l-4 border-l-purple-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Total Bids</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalBids}</p>
+            <Card className="p-3 xs:p-4 sm:p-5 border-l-4 border-l-green-500 bg-[#101010] border-[#2a2a2a]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[0.65rem] xs:text-xs sm:text-sm text-neutral-400 font-medium">Open Jobs</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white mt-1">{stats.open}</p>
                 </div>
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <Users className="w-6 h-6 text-purple-600" />
+                <div className="bg-green-500/20 p-2 xs:p-3 rounded-lg shrink-0">
+                  <Clock className="w-5 h-5 xs:w-6 xs:h-6 text-green-400" />
                 </div>
               </div>
             </Card>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="p-5 border-l-4 border-l-orange-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Pending Review</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.pendingBids}</p>
+            <Card className="p-3 xs:p-4 sm:p-5 border-l-4 border-l-purple-500 bg-[#101010] border-[#2a2a2a]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[0.65rem] xs:text-xs sm:text-sm text-neutral-400 font-medium">Total Bids</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white mt-1">{stats.totalBids}</p>
                 </div>
-                <div className="bg-orange-100 p-3 rounded-lg">
-                  <AlertCircle className="w-6 h-6 text-orange-600" />
+                <div className="bg-purple-500/20 p-2 xs:p-3 rounded-lg shrink-0">
+                  <Users className="w-5 h-5 xs:w-6 xs:h-6 text-purple-400" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="p-3 xs:p-4 sm:p-5 border-l-4 border-l-orange-500 bg-[#101010] border-[#2a2a2a]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[0.65rem] xs:text-xs sm:text-sm text-neutral-400 font-medium">Pending Review</p>
+                  <p className="text-xl xs:text-2xl font-bold text-white mt-1">{stats.pendingBids}</p>
+                </div>
+                <div className="bg-orange-500/20 p-2 xs:p-3 rounded-lg shrink-0">
+                  <AlertCircle className="w-5 h-5 xs:w-6 xs:h-6 text-orange-400" />
                 </div>
               </div>
             </Card>
@@ -283,13 +283,13 @@ export default function ViewBids() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mb-6"
+          className="mb-4 xs:mb-6"
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Filter by Status</h3>
+          <div className="flex items-center gap-2 mb-3 xs:mb-4">
+            <Filter className="w-4 h-4 xs:w-5 xs:h-5 text-neutral-400" />
+            <h3 className="font-semibold text-white text-sm xs:text-base">Filter by Status</h3>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 xs:gap-3">
             {STATUS_FILTERS.map((filter) => {
               const Icon = filter.icon;
               return (
@@ -298,13 +298,13 @@ export default function ViewBids() {
                   onClick={() => setStatusFilter(filter.value)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
+                  className={`px-3 xs:px-4 py-1.5 xs:py-2 rounded-lg font-medium text-xs xs:text-sm transition-all flex items-center gap-1.5 xs:gap-2 min-h-[36px] xs:min-h-[40px] ${
                     statusFilter === filter.value
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                      ? "bg-[#cfe0ad] text-black shadow-md"
+                      : "bg-[#1a1a1a] text-neutral-300 hover:bg-[#252525] border border-[#2a2a2a]"
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                   {filter.label}
                 </motion.button>
               );
@@ -317,57 +317,57 @@ export default function ViewBids() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-md p-12 text-center"
+            className="bg-[#101010] rounded-xl xs:rounded-2xl border border-[#2a2a2a] p-8 xs:p-10 sm:p-12 text-center"
           >
-            <Briefcase className="h-20 w-20 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
+            <Briefcase className="h-14 w-14 xs:h-16 xs:w-16 sm:h-20 sm:w-20 mx-auto text-neutral-600 mb-4" />
+            <h3 className="text-lg xs:text-xl font-semibold text-white mb-2">
               {statusFilter === "all" ? "No Jobs Posted" : `No ${statusFilter} Jobs`}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-neutral-400 text-sm xs:text-base mb-6">
               {statusFilter === "all"
                 ? "Post a job to start receiving bids from contractors."
                 : `You don't have any ${statusFilter} jobs at the moment.`}
             </p>
             {statusFilter === "all" && (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button onClick={() => navigate("/customer/post-job")} size="lg">
-                  <Plus className="w-5 h-5 mr-2" />
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button onClick={() => navigate("/customer/post-job")} className="bg-[#cfe0ad] text-black hover:bg-[#bfd09d]">
+                  <Plus className="w-4 h-4 xs:w-5 xs:h-5 mr-2" />
                   Post Your First Job
                 </Button>
               </motion.div>
             )}
             {statusFilter !== "all" && (
-              <Button variant="outline" onClick={() => setStatusFilter("all")}>
+              <Button variant="outline" onClick={() => setStatusFilter("all")} className="border-[#2a2a2a] hover:bg-[#1a1a1a] text-white">
                 View All Jobs
               </Button>
             )}
           </motion.div>
         ) : (
-          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
+          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3 xs:space-y-4">
             {filteredJobs.map((job) => (
               <motion.div key={job._id} variants={itemVariants}>
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Card className="overflow-hidden hover:bg-[#151515] transition-all bg-[#101010] border-[#2a2a2a]">
                   {/* Job Header */}
                   <div
-                    className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="p-4 xs:p-5 sm:p-6 cursor-pointer transition-colors"
                     onClick={() =>
                       selectedJob === job._id ? setSelectedJob(null) : loadBids(job._id)
                     }
                   >
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between mb-3 xs:mb-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
+                        <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
+                          <h3 className="text-base xs:text-lg sm:text-xl font-bold text-white truncate">{job.title}</h3>
                           {getStatusBadge(job.status)}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center gap-3 xs:gap-4 text-xs xs:text-sm text-neutral-400">
                           <span className="flex items-center gap-1">
-                            <Building2 className="w-4 h-4" />
+                            <Building2 className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                             {job.project?.name}
                           </span>
                           {job.createdAt && (
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
+                              <Calendar className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                               Posted {new Date(job.createdAt).toLocaleDateString()}
                             </span>
                           )}
@@ -377,36 +377,36 @@ export default function ViewBids() {
                         animate={{ rotate: selectedJob === job._id ? 180 : 0 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <ChevronDown className="w-6 h-6 text-gray-400" />
+                        <ChevronDown className="w-5 h-5 xs:w-6 xs:h-6 text-neutral-500" />
                       </motion.div>
                     </div>
 
                     {job.description && (
-                      <p className="text-gray-700 mb-4 line-clamp-2">{job.description}</p>
+                      <p className="text-neutral-400 text-sm mb-3 xs:mb-4 line-clamp-2">{job.description}</p>
                     )}
 
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold text-gray-900">{job.bidCount || 0}</span>
-                        <span className="text-gray-600 text-sm">
+                    <div className="flex flex-wrap items-center gap-4 xs:gap-6">
+                      <div className="flex items-center gap-1.5 xs:gap-2">
+                        <Users className="w-4 h-4 xs:w-5 xs:h-5 text-blue-400" />
+                        <span className="font-semibold text-white text-sm xs:text-base">{job.bidCount || 0}</span>
+                        <span className="text-neutral-400 text-xs xs:text-sm">
                           {job.bidCount === 1 ? "bid" : "bids"}
                         </span>
                       </div>
                       {job.bidsSummary && job.bidsSummary.pending > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-orange-600" />
-                          <span className="font-semibold text-gray-900">
+                        <div className="flex items-center gap-1.5 xs:gap-2">
+                          <Clock className="w-4 h-4 xs:w-5 xs:h-5 text-orange-400" />
+                          <span className="font-semibold text-white text-sm xs:text-base">
                             {job.bidsSummary.pending}
                           </span>
-                          <span className="text-gray-600 text-sm">pending review</span>
+                          <span className="text-neutral-400 text-xs xs:text-sm">pending</span>
                         </div>
                       )}
-                      {job.budget && (
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-5 h-5 text-green-600" />
-                          <span className="font-semibold text-gray-900">
-                            {formatCurrency(job.budget.min)} - {formatCurrency(job.budget.max)}
+                      {job.budget && (job.budget.min || job.budget.max) && (
+                        <div className="flex items-center gap-1.5 xs:gap-2">
+                          <DollarSign className="w-4 h-4 xs:w-5 xs:h-5 text-[#cfe0ad]" />
+                          <span className="font-semibold text-[#cfe0ad] text-sm xs:text-base">
+                            {formatCurrency(job.budget.min || 0)} - {formatCurrency(job.budget.max || 0)}
                           </span>
                         </div>
                       )}
@@ -421,24 +421,24 @@ export default function ViewBids() {
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="border-t border-gray-200 bg-gray-50 overflow-hidden"
+                        className="border-t border-[#2a2a2a] bg-[#0a0a0a] overflow-hidden"
                       >
-                        <div className="p-6">
+                        <div className="p-4 xs:p-5 sm:p-6">
                           {loadingBids ? (
-                            <div className="flex items-center justify-center py-12">
-                              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                            <div className="flex items-center justify-center py-8 xs:py-12">
+                              <div className="w-8 h-8 border-4 border-[#cfe0ad] border-t-transparent rounded-full animate-spin" />
                             </div>
                           ) : bids.length === 0 ? (
-                            <div className="text-center py-12">
-                              <AlertCircle className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                              <p className="text-gray-600 font-medium">No bids received yet</p>
-                              <p className="text-sm text-gray-500 mt-2">
+                            <div className="text-center py-8 xs:py-12">
+                              <AlertCircle className="w-12 h-12 xs:w-16 xs:h-16 mx-auto text-neutral-600 mb-4" />
+                              <p className="text-white font-medium text-sm xs:text-base">No bids received yet</p>
+                              <p className="text-xs xs:text-sm text-neutral-500 mt-2">
                                 Contractors will be notified about your job posting
                               </p>
                             </div>
                           ) : (
-                            <div className="space-y-4">
-                              <h4 className="font-semibold text-gray-900 mb-4">
+                            <div className="space-y-3 xs:space-y-4">
+                              <h4 className="font-semibold text-white text-sm xs:text-base mb-3 xs:mb-4">
                                 All Bids ({bids.length})
                               </h4>
                               {bids.map((bid, index) => (
@@ -448,28 +448,28 @@ export default function ViewBids() {
                                   animate={{ opacity: 1, x: 0 }}
                                   transition={{ delay: index * 0.1 }}
                                   className={cn(
-                                    "p-5 rounded-xl border-2 transition-all",
+                                    "p-4 xs:p-5 rounded-lg xs:rounded-xl border-2 transition-all",
                                     bid.status === "accepted"
-                                      ? "border-green-300 bg-green-50"
+                                      ? "border-green-500/30 bg-green-500/10"
                                       : bid.status === "rejected"
-                                      ? "border-red-200 bg-red-50 opacity-70"
-                                      : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
+                                      ? "border-red-500/20 bg-red-500/5 opacity-70"
+                                      : "border-[#2a2a2a] bg-[#151515] hover:border-[#cfe0ad]/30"
                                   )}
                                 >
-                                  <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-4">
+                                  <div className="flex flex-col xs:flex-row xs:items-start justify-between gap-3 xs:gap-4 mb-3 xs:mb-4">
+                                    <div className="flex items-center gap-3 xs:gap-4">
                                       <motion.div
                                         whileHover={{ scale: 1.1 }}
-                                        className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-md"
+                                        className="w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-base xs:text-lg sm:text-xl font-bold shadow-md shrink-0"
                                       >
                                         {bid.contractor?.name?.charAt(0) || "C"}
                                       </motion.div>
-                                      <div>
-                                        <p className="font-bold text-gray-900 text-lg">
+                                      <div className="min-w-0">
+                                        <p className="font-bold text-white text-sm xs:text-base sm:text-lg truncate">
                                           {bid.contractor?.name}
                                         </p>
                                         {bid.contractor?.company?.name && (
-                                          <p className="text-sm text-gray-600">
+                                          <p className="text-xs xs:text-sm text-neutral-400 truncate">
                                             {bid.contractor.company.name}
                                           </p>
                                         )}
@@ -478,26 +478,26 @@ export default function ViewBids() {
                                             {[...Array(5)].map((_, i) => (
                                               <Star
                                                 key={i}
-                                                className={`w-4 h-4 ${
+                                                className={`w-3 h-3 xs:w-4 xs:h-4 ${
                                                   i < Math.round(bid.contractor.rating.average)
                                                     ? "fill-yellow-400 text-yellow-400"
-                                                    : "text-gray-300"
+                                                    : "text-neutral-600"
                                                 }`}
                                               />
                                             ))}
-                                            <span className="text-sm text-gray-600 ml-1">
+                                            <span className="text-xs xs:text-sm text-neutral-400 ml-1">
                                               ({bid.contractor.rating.average.toFixed(1)})
                                             </span>
                                           </div>
                                         )}
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <p className="text-2xl font-bold text-green-600">
+                                    <div className="text-left xs:text-right">
+                                      <p className="text-lg xs:text-xl sm:text-2xl font-bold text-[#cfe0ad]">
                                         {formatCurrency(bid.amount)}
                                       </p>
                                       {bid.estimatedDuration && (
-                                        <p className="text-sm text-gray-600 flex items-center gap-1 justify-end mt-1">
+                                        <p className="text-xs xs:text-sm text-neutral-400 flex items-center gap-1 xs:justify-end mt-1">
                                           <Clock className="w-3 h-3" />
                                           {bid.estimatedDuration}
                                         </p>
@@ -505,25 +505,25 @@ export default function ViewBids() {
                                     </div>
                                   </div>
 
-                                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                  <div className="bg-[#1a1a1a] rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 border border-[#2a2a2a]">
                                     <div className="flex items-center gap-2 mb-2">
-                                      <MessageSquare className="w-4 h-4 text-gray-600" />
-                                      <span className="font-semibold text-gray-900">Proposal</span>
+                                      <MessageSquare className="w-3.5 h-3.5 xs:w-4 xs:h-4 text-neutral-400" />
+                                      <span className="font-semibold text-white text-xs xs:text-sm">Proposal</span>
                                     </div>
-                                    <p className="text-gray-700 text-sm leading-relaxed">
+                                    <p className="text-neutral-300 text-xs xs:text-sm leading-relaxed">
                                       {bid.proposal}
                                     </p>
                                   </div>
 
                                   {bid.status === "pending" && job.status === "open" && (
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2 xs:gap-3">
                                       <motion.div
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         className="flex-1"
                                       >
                                         <Button
-                                          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                                          className="w-full bg-green-600 hover:bg-green-700 text-white text-xs xs:text-sm min-h-[40px] xs:min-h-[44px]"
                                           onClick={() => handleAcceptBid(job._id, bid._id)}
                                           disabled={actionLoading === bid._id}
                                         >
@@ -531,8 +531,8 @@ export default function ViewBids() {
                                             <Loader2 className="w-4 h-4 animate-spin" />
                                           ) : (
                                             <>
-                                              <CheckCircle className="w-4 h-4 mr-2" />
-                                              Accept Bid
+                                              <CheckCircle className="w-3.5 h-3.5 xs:w-4 xs:h-4 mr-1.5 xs:mr-2" />
+                                              Accept
                                             </>
                                           )}
                                         </Button>
@@ -544,11 +544,11 @@ export default function ViewBids() {
                                       >
                                         <Button
                                           variant="outline"
-                                          className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                                          className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs xs:text-sm min-h-[40px] xs:min-h-[44px]"
                                           onClick={() => handleRejectBid(job._id, bid._id)}
                                           disabled={actionLoading === bid._id}
                                         >
-                                          <XCircle className="w-4 h-4 mr-2" />
+                                          <XCircle className="w-3.5 h-3.5 xs:w-4 xs:h-4 mr-1.5 xs:mr-2" />
                                           Reject
                                         </Button>
                                       </motion.div>
@@ -556,15 +556,15 @@ export default function ViewBids() {
                                   )}
 
                                   {bid.status === "accepted" && (
-                                    <div className="flex items-center justify-center gap-2 text-green-600 font-medium bg-green-100 py-3 rounded-lg">
-                                      <CheckCircle className="w-5 h-5" />
+                                    <div className="flex items-center justify-center gap-2 text-green-400 font-medium bg-green-500/20 py-2.5 xs:py-3 rounded-lg text-xs xs:text-sm">
+                                      <CheckCircle className="w-4 h-4 xs:w-5 xs:h-5" />
                                       Bid Accepted - Contractor Assigned
                                     </div>
                                   )}
 
                                   {bid.status === "rejected" && (
-                                    <div className="flex items-center justify-center gap-2 text-red-600 font-medium bg-red-100 py-3 rounded-lg">
-                                      <XCircle className="w-5 h-5" />
+                                    <div className="flex items-center justify-center gap-2 text-red-400 font-medium bg-red-500/20 py-2.5 xs:py-3 rounded-lg text-xs xs:text-sm">
+                                      <XCircle className="w-4 h-4 xs:w-5 xs:h-5" />
                                       Bid Rejected
                                     </div>
                                   )}
