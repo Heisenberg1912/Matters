@@ -27,10 +27,13 @@ build/
 .cache/
 coverage/
 
-# Environment files
+# Environment files (keep .env out of git for security)
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
+
+# Windows reserved names
+nul
 
 # Editor directories and files
 .vscode/
