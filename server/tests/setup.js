@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 
 let mongoServer;
 let isSetup = false;
+let appInstance = null;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'matters-secret-key-change-in-production';
 
@@ -28,12 +29,34 @@ export async function setupTestDatabase() {
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
 
-  await mongoose.connect(mongoUri, {
+  const conn = await mongoose.connect(mongoUri, {
     dbName: 'test',
   });
 
+  // Set the global state so the app's connectDB() uses our test connection
+  if (!globalThis.__mattersMongo) {
+    globalThis.__mattersMongo = {};
+  }
+  globalThis.__mattersMongo.conn = conn;
+  globalThis.__mattersMongo.promise = Promise.resolve(conn);
+
   isSetup = true;
   return mongoUri;
+}
+
+/**
+ * Get the app instance (must be called after setupTestDatabase)
+ * This ensures the app is imported AFTER the test database is connected
+ */
+export async function getApp() {
+  if (!isSetup) {
+    await setupTestDatabase();
+  }
+  if (!appInstance) {
+    const module = await import('../src/app.js');
+    appInstance = module.default;
+  }
+  return appInstance;
 }
 
 /**
