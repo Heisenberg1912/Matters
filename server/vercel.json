@@ -3,39 +3,13 @@
   "builds": [
     {
       "src": "src/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "src/index.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With"
-      }
-    },
-    {
-      "src": "/uploads/(.*)",
-      "dest": "src/index.js"
-    },
-    {
       "src": "/(.*)",
       "dest": "src/index.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "regions": ["bom1"],
-  "functions": {
-    "src/index.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
+  ]
 }

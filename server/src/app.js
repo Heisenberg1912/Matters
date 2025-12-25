@@ -38,16 +38,14 @@ const loadEnv = () => {
     return;
   }
 
+  // Try loading from root .env file (for local dev)
   const envPath = join(__dirname, '../..', '.env');
-  console.log('Loading .env from:', envPath);
   const result = dotenv.config({ path: envPath });
 
-  if (result.error) {
-    console.error('Error loading .env:', result.error);
-  } else {
+  if (result.error && !process.env.MONGODB_URI) {
+    console.warn('Note: .env file not found, using system environment variables');
+  } else if (!result.error) {
     console.log('✅ .env loaded successfully');
-    console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
-    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
   }
 
   process.env.MATTERS_ENV_LOADED = 'true';
