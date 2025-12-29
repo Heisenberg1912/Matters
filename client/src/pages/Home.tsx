@@ -427,7 +427,7 @@ export default function Home() {
                         key={resource.title}
                         type="button"
                         onClick={resource.onClick}
-                        className="relative h-[80px] xs:h-[100px] sm:h-[130px] md:h-[160px] lg:h-[180px] xl:h-[200px] overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[34px] border border-[#2a2a2a] bg-[#151515] text-left shadow-[0_4px_16px_rgba(0,0,0,0.2)] sm:shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition active:scale-[0.98] hover:scale-[1.01] animate-fade-in"
+                        className="relative h-[100px] xs:h-[120px] sm:h-[160px] md:h-[200px] lg:h-[220px] xl:h-[250px] overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[34px] border border-[#2a2a2a] bg-[#151515] text-left shadow-[0_4px_16px_rgba(0,0,0,0.2)] sm:shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition active:scale-[0.98] hover:scale-[1.01] animate-fade-in"
                         style={{ animationDelay: `${idx * 50}ms` }}
                       >
                         {resource.img ? (
