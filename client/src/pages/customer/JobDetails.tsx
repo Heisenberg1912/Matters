@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import PageLayout from "@/components/page-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { jobsApi, progressApi } from "@/lib/api";
+import { jobsApi } from "@/lib/api";
 import {
-  ArrowLeft,
   Briefcase,
   Calendar,
   DollarSign,
@@ -16,7 +16,6 @@ import {
   MessageSquare,
   Send,
   Loader2,
-  CheckCircle,
   Clock,
   AlertCircle,
   Edit,
@@ -28,9 +27,8 @@ import {
   Phone,
   Building2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
-import { AnimatedModal, AnimatedDialog, StatusBadge } from "@/components/customer";
+import { AnimatedDialog, StatusBadge } from "@/components/customer";
 
 interface JobData {
   _id: string;
@@ -151,76 +149,64 @@ export default function JobDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
-        <div className="flex flex-col items-center gap-3 xs:gap-4">
-          <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 border-4 border-[#cfe0ad] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs xs:text-sm sm:text-base text-neutral-400 animate-pulse">Loading job details...</p>
+      <PageLayout title="Job Details" showBackButton showBreadcrumbs>
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3 xs:gap-4">
+            <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 border-4 border-[#cfe0ad] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs xs:text-sm sm:text-base text-neutral-400 animate-pulse">Loading job details...</p>
+          </div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   if (!job) {
     return (
-      <div className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4">
-        <Card className="p-6 xs:p-8 text-center max-w-md bg-[#101010] border-[#2a2a2a]">
-          <AlertCircle className="w-14 h-14 xs:w-16 xs:h-16 mx-auto text-neutral-600 mb-4" />
-          <h3 className="text-lg xs:text-xl font-semibold text-white mb-2">Job Not Found</h3>
-          <p className="text-neutral-400 text-sm xs:text-base mb-4">The job you're looking for doesn't exist</p>
-          <Button onClick={() => navigate("/customer/bids")} className="bg-[#cfe0ad] text-black hover:bg-[#bfd09d]">Back to Jobs</Button>
-        </Card>
-      </div>
+      <PageLayout title="Job Details" showBackButton showBreadcrumbs>
+        <div className="flex items-center justify-center py-20">
+          <Card className="p-6 xs:p-8 text-center max-w-md bg-[#101010] border-[#2a2a2a]">
+            <AlertCircle className="w-14 h-14 xs:w-16 xs:h-16 mx-auto text-neutral-600 mb-4" />
+            <h3 className="text-lg xs:text-xl font-semibold text-white mb-2">Job Not Found</h3>
+            <p className="text-neutral-400 text-sm xs:text-base mb-4">The job you're looking for doesn't exist</p>
+            <Button onClick={() => navigate("/customer/bids")} className="bg-[#cfe0ad] text-black hover:bg-[#bfd09d]">Back to Jobs</Button>
+          </Card>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
-      {/* Header */}
+    <PageLayout title="Job Details" showBackButton showBreadcrumbs breadcrumbLabel={job.title}>
+      {/* Page Title Card */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#0a0a0a] border-b border-[#1f1f1f] sticky top-0 z-10"
+        className="mb-4 xs:mb-6"
       >
-        <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-5 sm:py-6">
-          <div className="flex items-start xs:items-center gap-3 xs:gap-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => navigate("/customer/bids")}
-              className="text-neutral-400 hover:text-white mt-1 xs:mt-0"
-            >
-              <ArrowLeft className="w-5 h-5 xs:w-6 xs:h-6" />
-            </motion.button>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-1 xs:mb-2">
-                <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-white truncate">{job.title}</h1>
-                <StatusBadge status={job.status} />
-              </div>
-              <p className="text-xs xs:text-sm text-neutral-400">Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
-            </div>
-            <div className="hidden xs:flex items-center gap-2">
-              {job.status === "open" && (
-                <>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="outline" onClick={() => navigate(`/customer/post-job?edit=${job._id}`)} className="border-[#2a2a2a] hover:bg-[#1a1a1a] text-white">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="outline" onClick={() => setShowDeleteDialog(true)} className="text-red-400 border-red-400/30 hover:bg-red-400/10">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Cancel
-                    </Button>
-                  </motion.div>
-                </>
-              )}
-            </div>
-          </div>
+        <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-1 xs:mb-2">
+          <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold text-white truncate">{job.title}</h1>
+          <StatusBadge status={job.status} />
         </div>
+        <p className="text-xs xs:text-sm text-neutral-400">Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
+        {job.status === "open" && (
+          <div className="flex items-center gap-2 mt-3">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/customer/post-job?edit=${job._id}`)} className="border-[#2a2a2a] hover:bg-[#1a1a1a] text-white">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(true)} className="text-red-400 border-red-400/30 hover:bg-red-400/10">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </motion.div>
+          </div>
+        )}
       </motion.div>
 
-      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8">
+      <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-6 sm:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-4 xs:space-y-6">
@@ -514,6 +500,6 @@ export default function JobDetails() {
         variant="danger"
         loading={deleting}
       />
-    </div>
+    </PageLayout>
   );
 }

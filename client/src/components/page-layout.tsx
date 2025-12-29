@@ -3,6 +3,7 @@ import PhoneShell from "@/components/phone-shell";
 import BottomNav from "@/components/bottom-nav";
 import PageHeader from "@/components/page-header";
 import SideMenu from "@/components/side-menu";
+import Breadcrumbs from "@/components/breadcrumbs";
 import { AnimatedPage } from "@/components/AnimatedPage";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -28,13 +29,21 @@ interface PageLayoutProps {
   animated?: boolean;
   /** Additional elements to render (FAB, modals, etc) */
   extras?: ReactNode;
+  /** Show breadcrumbs navigation */
+  showBreadcrumbs?: boolean;
+  /** Override breadcrumb label for current page */
+  breadcrumbLabel?: string;
+  /** Show back button in header */
+  showBackButton?: boolean;
+  /** Custom back handler */
+  onBack?: () => void;
 }
 
 export default function PageLayout({
   children,
   title,
   showModeToggle = true,
-  showBottomNav = true,
+  showBottomNav = false,
   customHeader,
   showNotifications = false,
   notificationCount = 0,
@@ -42,6 +51,10 @@ export default function PageLayout({
   contentClassName,
   animated = true,
   extras,
+  showBreadcrumbs = false,
+  breadcrumbLabel,
+  showBackButton = false,
+  onBack,
 }: PropsWithChildren<PageLayoutProps>) {
   const content = (
     <PhoneShell>
@@ -55,7 +68,16 @@ export default function PageLayout({
               showNotifications={showNotifications}
               notificationCount={notificationCount}
               onNotificationClick={onNotificationClick}
+              showBackButton={showBackButton}
+              onBack={onBack}
             />
+          )}
+
+          {/* Breadcrumbs */}
+          {showBreadcrumbs && (
+            <div className="px-3 xs:px-4 sm:px-6 md:px-10 lg:px-24 bg-[#050505]">
+              <Breadcrumbs currentLabel={breadcrumbLabel} />
+            </div>
           )}
 
           {/* Main Content */}

@@ -234,7 +234,7 @@ export default function PostJob() {
         animate="animate"
         exit="exit"
         variants={pageVariants}
-        className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4 pb-20"
+        className="min-h-[100dvh] bg-[#010101] flex items-center justify-center px-4 pb-28"
       >
         <Card className="p-5 xs:p-6 sm:p-8 text-center max-w-[340px] xs:max-w-sm sm:max-w-md w-full border-2 border-dashed border-[#2a2a2a] bg-[#101010]">
           <motion.div
@@ -259,7 +259,7 @@ export default function PostJob() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
+    <div className="min-h-[100dvh] bg-[#010101] pb-28 xs:pb-32 sm:pb-36">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

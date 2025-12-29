@@ -149,7 +149,7 @@ export default function ProgressTracking() {
 
   if (!currentProject) {
     return (
-      <div className="min-h-[100dvh] bg-[#010101] pb-24 flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-[#010101] pb-28 flex items-center justify-center px-4">
         <Card className="p-6 xs:p-8 text-center max-w-md bg-[#101010] border-[#2a2a2a]">
           <Activity className="w-14 h-14 xs:w-16 xs:h-16 mx-auto text-neutral-600 mb-4" />
           <h3 className="text-lg xs:text-xl font-semibold text-white mb-2">No Project Selected</h3>
@@ -160,7 +160,7 @@ export default function ProgressTracking() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
+    <div className="min-h-[100dvh] bg-[#010101] pb-28 xs:pb-32 sm:pb-36">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

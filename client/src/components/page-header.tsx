@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from "react";
-import { Bell, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, ChevronLeft, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SheetTrigger } from "@/components/ui/sheet";
 import ProjectSwitcher from "@/components/project-switcher";
@@ -16,6 +17,10 @@ interface PageHeaderProps {
   notificationCount?: number;
   onNotificationClick?: () => void;
   className?: string;
+  /** Show back button */
+  showBackButton?: boolean;
+  /** Custom back handler (defaults to navigate(-1)) */
+  onBack?: () => void;
 }
 
 export default function PageHeader({
@@ -25,13 +30,28 @@ export default function PageHeader({
   notificationCount = 0,
   onNotificationClick,
   className,
+  showBackButton = false,
+  onBack,
 }: PageHeaderProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { currentProject, updateProject } = useProject();
   const { showToast } = useNotifications();
   const mode = useProjectStore((state) => state.mode);
   const setMode = useProjectStore((state) => state.setMode);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleBack = useCallback(() => {
+    // Haptic feedback for mobile
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+    if (onBack) {
+      onBack();
+    } else {
+      navigate(-1);
+    }
+  }, [onBack, navigate]);
 
   // Sync local mode with project mode when project changes
   useEffect(() => {
@@ -85,6 +105,18 @@ export default function PageHeader({
       )}
     >
       <div className="flex items-center gap-3 xs:gap-4 sm:gap-6 flex-1">
+        {/* Back Button */}
+        {showBackButton && (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="shrink-0 p-2 -ml-2 rounded-full text-white hover:bg-[#1a1a1a] active:scale-95 transition touch-target focus-ring"
+            aria-label="Go back"
+          >
+            <ChevronLeft className="h-6 w-6 xs:h-7 xs:w-7" />
+          </button>
+        )}
+
         <SheetTrigger asChild>
           <button type="button" className="shrink-0 touch-target focus-ring rounded-full">
             <Avatar className="h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 border-2 border-[#232323]">

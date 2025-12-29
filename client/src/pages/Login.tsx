@@ -16,14 +16,8 @@ export default function Login() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirect based on role
-      if (user.role === "contractor") {
-        navigate("/contractor/dashboard", { replace: true });
-      } else if (user.role === "admin" || user.role === "superadmin") {
-        navigate("/admin/dashboard", { replace: true });
-      } else {
-        navigate("/home", { replace: true });
-      }
+      // Navigate to success animation page
+      navigate("/login-success", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 

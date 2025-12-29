@@ -188,7 +188,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#010101] pb-24 xs:pb-28">
+    <div className="min-h-[100dvh] bg-[#010101] pb-28 xs:pb-32 sm:pb-36">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

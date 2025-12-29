@@ -169,7 +169,7 @@ export default function JobDetails() {
 
   if (loading) {
     return (
-      <PageLayout title="Job Details">
+      <PageLayout title="Job Details" showBackButton showBreadcrumbs>
         <div className="space-y-3">
           {[1, 2].map((i) => (
             <div key={i} className="h-40 bg-card animate-pulse rounded-2xl" />
@@ -181,7 +181,7 @@ export default function JobDetails() {
 
   if (error || !job) {
     return (
-      <PageLayout title="Job Details">
+      <PageLayout title="Job Details" showBackButton showBreadcrumbs>
         <Card className="p-8 text-center">
           <AlertCircle className="h-12 w-12 mx-auto text-muted mb-4" />
           <p className="text-sm text-muted mb-4">{error || "Job not found"}</p>
@@ -196,7 +196,7 @@ export default function JobDetails() {
   const canEdit = existingBid?.status === "pending" && canBid;
 
   return (
-    <PageLayout title="Job Details">
+    <PageLayout title="Job Details" showBackButton showBreadcrumbs breadcrumbLabel={job.title}>
       <div className="space-y-6">
         <Card className="p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">

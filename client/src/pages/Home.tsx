@@ -491,7 +491,7 @@ export default function Home() {
                         <div className="mt-4 xs:mt-5 sm:mt-8 md:mt-10 flex justify-center gap-1.5 xs:gap-2 sm:gap-3">
                           {stageSlides.map((slide, idx) => (
                             <span
-                              key={slide.title}
+                              key={idx}
                               className={`h-1.5 w-1.5 xs:h-2 xs:w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 rounded-full transition ${idx === stageIndex ? "bg-[var(--pill,#cfe0ad)]" : "bg-[#2a2a2a]"}`}
                             />
                           ))}
