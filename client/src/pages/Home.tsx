@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BottomNav from "@/components/bottom-nav";
 import PhoneShell from "@/components/phone-shell";
 import PageHeader from "@/components/page-header";
 import SideMenu from "@/components/side-menu";
@@ -656,7 +655,6 @@ export default function Home() {
             +
           </Fab>
           <QuickAddSheet open={quickAddOpen} onOpenChange={setQuickAddOpen} />
-          <BottomNav />
         </div>
 
         {/* Side Menu */}

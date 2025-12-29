@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 
 export default function JobDetails() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { jobId: id } = useParams<{ jobId: string }>();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -7,9 +7,9 @@ import BottomNav from "./bottom-nav";
  */
 export default function AppLayout() {
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#010101]">
+    <div className="min-h-[100dvh] w-full flex flex-col bg-[#010101]">
       {/* Page content */}
-      <div className="flex-1">
+      <div className="flex-1 w-full">
         <Outlet />
       </div>
 

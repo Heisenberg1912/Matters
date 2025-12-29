@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BottomNav from "@/components/bottom-nav";
 import PhoneShell from "@/components/phone-shell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -344,8 +343,6 @@ export default function VisitBuiltattic() {
               </section>
             </div>
           </div>
-
-          <BottomNav />
         </div>
 
         <SheetContent>
