@@ -7,13 +7,13 @@ import BottomNav from "./bottom-nav";
  */
 export default function AppLayout() {
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col bg-[#010101]">
-      {/* Page content */}
-      <div className="flex-1 w-full">
+    <div className="min-h-[100dvh] w-full bg-[#010101]">
+      {/* Page content with bottom padding for fixed nav */}
+      <div className="w-full pb-20 xs:pb-24 sm:pb-28">
         <Outlet />
       </div>
 
-      {/* Bottom Navigation - always visible */}
+      {/* Bottom Navigation - fixed at bottom */}
       <BottomNav />
     </div>
   );

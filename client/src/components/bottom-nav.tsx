@@ -68,7 +68,7 @@ export default function BottomNav() {
   const navItems = getNavItems();
 
   return (
-    <nav className="sticky bottom-0 z-30 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 safe-bottom">
       {/* Gradient blur backdrop */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#090909] via-[#090909]/95 to-[#090909]/80 backdrop-blur-xl" />
 

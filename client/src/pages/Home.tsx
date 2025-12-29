@@ -13,7 +13,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useSwipe } from "@/hooks/use-swipe";
 import { useProject } from "@/context/ProjectContext";
-import { useBudgetStore, useScheduleStore, useTeamStore } from "@/store";
+import { useScheduleStore } from "@/store";
 import {
   Skeleton,
   SkeletonStageSlider,
@@ -21,22 +21,6 @@ import {
   SkeletonInsightCard,
   SkeletonResourceCard
 } from "@/components/ui/skeleton";
-import {
-  Cloud,
-  Sun,
-  CloudRain,
-  Wind,
-  Droplets,
-  Calendar,
-  DollarSign,
-  Users,
-  CheckCircle2,
-  Clock,
-  FileText,
-  Camera,
-  MessageSquare,
-  Package
-} from "lucide-react";
 
 import ideationMedal from "../assets/placeholders/medals/ideation.png";
 import surveyMedal from "../assets/placeholders/medals/survey.png";
@@ -141,34 +125,12 @@ const insightCards = [
   }
 ];
 
-const recentActivities = [
-  { id: 1, type: "upload", user: "Rajesh K.", action: "uploaded 3 site photos", time: "2 min ago", icon: Camera },
-  { id: 2, type: "message", user: "Suresh V.", action: "sent a message in Contractor Chat", time: "15 min ago", icon: MessageSquare },
-  { id: 3, type: "document", user: "You", action: "added Floor Plan Rev-02", time: "1 hour ago", icon: FileText },
-  { id: 4, type: "inventory", user: "Amit S.", action: "updated cement inventory", time: "2 hours ago", icon: Package },
-  { id: 5, type: "task", user: "You", action: "completed Foundation inspection", time: "3 hours ago", icon: CheckCircle2 }
-];
-
 const mockNotifications = [
   { id: 1, title: "Budget Alert", message: "Cement costs exceeded estimate by 5%", time: "5m", unread: true },
   { id: 2, title: "New Message", message: "Rajesh Kumar sent you a message", time: "20m", unread: true },
   { id: 3, title: "Task Completed", message: "Foundation work marked complete", time: "1h", unread: false },
   { id: 4, title: "Weather Warning", message: "Rain expected tomorrow afternoon", time: "2h", unread: false }
 ];
-
-const weatherData = {
-  location: "Bhopal, MP",
-  temp: 28,
-  condition: "Partly Cloudy",
-  humidity: 45,
-  wind: 12,
-  forecast: [
-    { day: "Today", high: 32, low: 22, icon: Sun },
-    { day: "Tue", high: 30, low: 21, icon: Cloud },
-    { day: "Wed", high: 28, low: 20, icon: CloudRain },
-    { day: "Thu", high: 31, low: 22, icon: Sun }
-  ]
-};
 
 export default function Home() {
   const [stageIndex, setStageIndex] = useState(0);
@@ -178,19 +140,9 @@ export default function Home() {
   const { currentProject } = useProject();
 
   // Select raw state to avoid infinite loops from calling getters in selectors
-  const budgetCategories = useBudgetStore((state) => state.categories);
   const schedulePhases = useScheduleStore((state) => state.phases);
-  const teamMembers = useTeamStore((state) => state.members);
 
   // Compute values using useMemo to prevent recalculation on every render
-  const totalAllocated = useMemo(() =>
-    budgetCategories.reduce((sum, cat) => sum + cat.allocated, 0),
-    [budgetCategories]
-  );
-  const totalSpent = useMemo(() =>
-    budgetCategories.reduce((sum, cat) => sum + cat.spent, 0),
-    [budgetCategories]
-  );
   const tasksByStatus = useMemo(() => {
     const allTasks = schedulePhases.flatMap((phase) => phase.tasks);
     return {
@@ -204,10 +156,6 @@ export default function Home() {
     const total = schedulePhases.reduce((sum, phase) => sum + (phase.progress || 0), 0);
     return Math.round(total / schedulePhases.length);
   }, [schedulePhases]);
-  const activeMembersCount = useMemo(() =>
-    teamMembers.filter((m) => m.status === 'active').length,
-    [teamMembers]
-  );
 
   const navigate = useNavigate();
   const scheduleStageSlides = useMemo(() => {
@@ -237,47 +185,6 @@ export default function Home() {
   const { showToast } = useNotifications();
   const progressPercent = currentProject?.progress?.percentage ?? overallProgress;
   const tasksTotal = tasksByStatus.completed + tasksByStatus.in_progress + tasksByStatus.pending;
-  const deadline = currentProject?.timeline?.expectedEndDate || currentProject?.endDate;
-  const daysLeft = deadline
-    ? Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(value || 0);
-
-  const quickStats = [
-    {
-      label: "Budget Spent",
-      value: formatCurrency(totalSpent),
-      subtext: `of ${formatCurrency(totalAllocated)}`,
-      icon: DollarSign,
-      color: "#cfe0ad",
-    },
-    {
-      label: "Tasks Done",
-      value: `${tasksByStatus.completed}`,
-      subtext: `of ${tasksTotal} total`,
-      icon: CheckCircle2,
-      color: "#a8d5ba",
-    },
-    {
-      label: "Days Left",
-      value: daysLeft !== null ? `${daysLeft}` : "TBD",
-      subtext: "until deadline",
-      icon: Calendar,
-      color: "#f0c674",
-    },
-    {
-      label: "Team Size",
-      value: `${activeMembersCount}`,
-      subtext: "active members",
-      icon: Users,
-      color: "#8fbcbb",
-    },
-  ];
 
   const unreadCount = mockNotifications.filter(n => n.unread).length;
 
@@ -357,77 +264,6 @@ export default function Home() {
               >
                 {isRefreshing ? "Refreshing..." : "Pull to refresh"}
               </div>
-
-              {/* Weather Widget */}
-              <section className="mt-4 xs:mt-6 sm:mt-8">
-                {isLoading ? (
-                  <Skeleton className="h-28 xs:h-32 sm:h-36 w-full rounded-2xl" />
-                ) : (
-                  <Card className="border border-[#242424] bg-gradient-to-br from-[#1a2a1a] to-[#0a150a] p-3 xs:p-4 sm:p-5 rounded-2xl xs:rounded-3xl overflow-hidden animate-fade-in">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 xs:gap-4">
-                        <div className="p-2 xs:p-3 rounded-full bg-[#cfe0ad]/10">
-                          <Sun className="h-6 w-6 xs:h-8 xs:w-8 text-[#cfe0ad]" />
-                        </div>
-                        <div>
-                          <p className="text-[0.65rem] xs:text-xs text-[#888] uppercase tracking-wider">{weatherData.location}</p>
-                          <p className="text-2xl xs:text-3xl sm:text-4xl font-bold text-white">{weatherData.temp}C</p>
-                          <p className="text-xs xs:text-sm text-[#aaa]">{weatherData.condition}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1 xs:gap-2 text-right">
-                        <div className="flex items-center gap-1 xs:gap-2 text-[0.65rem] xs:text-xs text-[#888]">
-                          <Droplets className="h-3 w-3 xs:h-4 xs:w-4" />
-                          <span>{weatherData.humidity}%</span>
-                        </div>
-                        <div className="flex items-center gap-1 xs:gap-2 text-[0.65rem] xs:text-xs text-[#888]">
-                          <Wind className="h-3 w-3 xs:h-4 xs:w-4" />
-                          <span>{weatherData.wind} km/h</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 xs:mt-4 pt-3 xs:pt-4 border-t border-[#2a2a2a] flex justify-between">
-                      {weatherData.forecast.map((day) => (
-                        <div key={day.day} className="text-center">
-                          <p className="text-[0.6rem] xs:text-xs text-[#888]">{day.day}</p>
-                          <day.icon className="h-4 w-4 xs:h-5 xs:w-5 mx-auto my-1 text-[#cfe0ad]" />
-                          <p className="text-[0.6rem] xs:text-xs text-white">{day.high}C</p>
-                          <p className="text-[0.55rem] xs:text-[0.65rem] text-[#666]">{day.low}C</p>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
-              </section>
-
-              {/* Quick Stats */}
-              <section className="mt-4 xs:mt-6 sm:mt-8">
-                <h2 className="text-base xs:text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white mb-3 xs:mb-4">Quick Stats</h2>
-                {isLoading ? (
-                  <div className="grid grid-cols-2 gap-2 xs:gap-3 sm:gap-4 md:grid-cols-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <Skeleton key={i} className="h-24 xs:h-28 sm:h-32 rounded-xl" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2 xs:gap-3 sm:gap-4 md:grid-cols-4">
-                    {quickStats.map((stat, idx) => (
-                      <Card
-                        key={stat.label}
-                        className={`border border-[#242424] bg-[#101010] p-3 xs:p-4 rounded-xl xs:rounded-2xl animate-fade-in`}
-                        style={{ animationDelay: `${idx * 100}ms` }}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <stat.icon className="h-4 w-4 xs:h-5 xs:w-5" style={{ color: stat.color }} />
-                          <span className="text-[0.6rem] xs:text-xs text-[#888] uppercase tracking-wider">{stat.label}</span>
-                        </div>
-                        <p className="text-xl xs:text-2xl sm:text-3xl font-bold text-white">{stat.value}</p>
-                        <p className="text-[0.6rem] xs:text-xs text-[#666]">{stat.subtext}</p>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </section>
 
               {/* Current Progress Section */}
               <section className="mt-4 xs:mt-6 sm:mt-10 md:mt-12">
@@ -535,47 +371,6 @@ export default function Home() {
                 </Card>
               </section>
 
-              {/* Recent Activity Feed */}
-              <section className="mt-4 xs:mt-6 sm:mt-10 md:mt-12">
-                <div className="flex items-center justify-between mb-3 xs:mb-4">
-                  <h2 className="text-base xs:text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white">Recent Activity</h2>
-                  <button className="text-[0.65rem] xs:text-xs text-[#cfe0ad] font-semibold hover:underline">
-                    View All
-                  </button>
-                </div>
-                {isLoading ? (
-                  <div className="space-y-2 xs:space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-16 xs:h-18 w-full rounded-xl" />
-                    ))}
-                  </div>
-                ) : (
-                  <Card className="border border-[#242424] bg-[#101010] rounded-xl xs:rounded-2xl overflow-hidden animate-fade-in">
-                    {recentActivities.map((activity, idx) => (
-                      <div
-                        key={activity.id}
-                        className={`flex items-center gap-3 p-3 xs:p-4 ${idx !== recentActivities.length - 1 ? "border-b border-[#1a1a1a]" : ""} hover:bg-[#151515] transition cursor-pointer`}
-                        style={{ animationDelay: `${idx * 50}ms` }}
-                      >
-                        <div className="p-2 rounded-full bg-[#1a1a1a] shrink-0">
-                          <activity.icon className="h-4 w-4 xs:h-5 xs:w-5 text-[#cfe0ad]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs xs:text-sm text-white">
-                            <span className="font-semibold">{activity.user}</span>{" "}
-                            <span className="text-[#888]">{activity.action}</span>
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 text-[#666] shrink-0">
-                          <Clock className="h-3 w-3" />
-                          <span className="text-[0.6rem] xs:text-xs">{activity.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </Card>
-                )}
-              </section>
-
               {/* Daily Insights Section */}
               <section className="mt-6 xs:mt-8 sm:mt-12 md:mt-16">
                 <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">Daily Insights</h2>
@@ -632,7 +427,7 @@ export default function Home() {
                         key={resource.title}
                         type="button"
                         onClick={resource.onClick}
-                        className="relative h-[120px] xs:h-[150px] sm:h-[220px] md:h-[300px] lg:h-[380px] xl:h-[430px] overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[34px] border border-[#2a2a2a] bg-[#151515] text-left shadow-[0_4px_16px_rgba(0,0,0,0.2)] sm:shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition active:scale-[0.98] hover:scale-[1.01] animate-fade-in"
+                        className="relative h-[80px] xs:h-[100px] sm:h-[130px] md:h-[160px] lg:h-[180px] xl:h-[200px] overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[34px] border border-[#2a2a2a] bg-[#151515] text-left shadow-[0_4px_16px_rgba(0,0,0,0.2)] sm:shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition active:scale-[0.98] hover:scale-[1.01] animate-fade-in"
                         style={{ animationDelay: `${idx * 50}ms` }}
                       >
                         {resource.img ? (

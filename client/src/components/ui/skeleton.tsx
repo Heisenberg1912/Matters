@@ -80,6 +80,6 @@ export function SkeletonInsightCard() {
 
 export function SkeletonResourceCard() {
   return (
-    <Skeleton className="h-[120px] xs:h-[150px] sm:h-[220px] md:h-[300px] lg:h-[380px] xl:h-[430px] rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[34px]" />
+    <Skeleton className="h-[80px] xs:h-[100px] sm:h-[130px] md:h-[160px] lg:h-[180px] xl:h-[200px] rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[34px]" />
   );
 }
