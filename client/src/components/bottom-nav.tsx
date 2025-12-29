@@ -25,9 +25,9 @@ type NavItem = {
 
 // Customer navigation
 const customerNavItems: NavItem[] = [
-  { to: "/customer/dashboard", label: "DASHBOARD", shortLabel: "HOME", icon: LayoutDashboard },
+  { to: "/home", label: "HOME", shortLabel: "HOME", icon: Home },
+  { to: "/customer/dashboard", label: "DASHBOARD", shortLabel: "DASH", icon: LayoutDashboard },
   { to: "/customer/bids", label: "BIDS", shortLabel: "BIDS", icon: ClipboardList },
-  { to: "/home", label: "PROJECTS", shortLabel: "PROJ", icon: Building2 },
   { to: "/customer/post-job", label: "POST JOB", shortLabel: "POST", icon: Briefcase },
 ];
 
