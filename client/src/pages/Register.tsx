@@ -5,6 +5,80 @@ import { User, HardHat, Eye, EyeOff, Loader2, ArrowLeft, Mail, Lock, Phone, Buil
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 
+type InputFieldProps = {
+  id: string;
+  name: string;
+  type?: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  required?: boolean;
+  icon: React.ElementType;
+  showPasswordToggle?: boolean;
+  isPasswordVisible?: boolean;
+  onPasswordToggle?: () => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  focusedField: string | null;
+  setFocusedField: (field: string | null) => void;
+};
+
+const InputField = ({
+  id,
+  name,
+  type = "text",
+  label,
+  placeholder,
+  value,
+  required = false,
+  icon: Icon,
+  showPasswordToggle = false,
+  isPasswordVisible = false,
+  onPasswordToggle,
+  onChange,
+  focusedField,
+  setFocusedField,
+}: InputFieldProps) => (
+  <div className="space-y-1.5">
+    <label htmlFor={id} className="block text-xs xs:text-sm font-medium text-neutral-300">
+      {label} {required && <span className="text-red-400">*</span>}
+    </label>
+    <motion.div
+      className="relative"
+      animate={{ scale: focusedField === id ? 1.01 : 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="absolute left-3.5 xs:left-4 top-1/2 -translate-y-1/2 text-neutral-500">
+        <Icon className="w-4 h-4 xs:w-5 xs:h-5" />
+      </div>
+      <input
+        type={showPasswordToggle ? (isPasswordVisible ? "text" : "password") : type}
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onFocus={() => setFocusedField(id)}
+        onBlur={() => setFocusedField(null)}
+        className={`w-full pl-10 xs:pl-12 ${showPasswordToggle ? "pr-12" : "pr-4"} py-3 xs:py-3.5 bg-neutral-900/80 border border-neutral-700/50 rounded-xl text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 focus:ring-2 focus:ring-[#cfe0ad]/20 transition-all duration-200`}
+        placeholder={placeholder}
+        required={required}
+      />
+      {showPasswordToggle && onPasswordToggle && (
+        <button
+          type="button"
+          onClick={onPasswordToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-neutral-800/50"
+        >
+          {isPasswordVisible ? (
+            <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" />
+          ) : (
+            <Eye className="w-4 h-4 xs:w-5 xs:h-5" />
+          )}
+        </button>
+      )}
+    </motion.div>
+  </div>
+);
+
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -124,72 +198,6 @@ export default function Register() {
       setIsLoading(false);
     }
   };
-
-  const InputField = ({
-    id,
-    name,
-    type = "text",
-    label,
-    placeholder,
-    value,
-    required = false,
-    icon: Icon,
-    showPasswordToggle = false,
-    isPasswordVisible = false,
-    onPasswordToggle,
-  }: {
-    id: string;
-    name: string;
-    type?: string;
-    label: string;
-    placeholder: string;
-    value: string;
-    required?: boolean;
-    icon: React.ElementType;
-    showPasswordToggle?: boolean;
-    isPasswordVisible?: boolean;
-    onPasswordToggle?: () => void;
-  }) => (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs xs:text-sm font-medium text-neutral-300">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
-      <motion.div
-        className="relative"
-        animate={{ scale: focusedField === id ? 1.01 : 1 }}
-        transition={{ duration: 0.2 }}
-      >
-        <div className="absolute left-3.5 xs:left-4 top-1/2 -translate-y-1/2 text-neutral-500">
-          <Icon className="w-4 h-4 xs:w-5 xs:h-5" />
-        </div>
-        <input
-          type={showPasswordToggle ? (isPasswordVisible ? "text" : "password") : type}
-          id={id}
-          name={name}
-          value={value}
-          onChange={handleInputChange}
-          onFocus={() => setFocusedField(id)}
-          onBlur={() => setFocusedField(null)}
-          className={`w-full pl-10 xs:pl-12 ${showPasswordToggle ? "pr-12" : "pr-4"} py-3 xs:py-3.5 bg-neutral-900/80 border border-neutral-700/50 rounded-xl text-sm xs:text-base text-white placeholder-neutral-500 focus:outline-none focus:border-[#cfe0ad]/50 focus:ring-2 focus:ring-[#cfe0ad]/20 transition-all duration-200`}
-          placeholder={placeholder}
-          required={required}
-        />
-        {showPasswordToggle && onPasswordToggle && (
-          <button
-            type="button"
-            onClick={onPasswordToggle}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-neutral-800/50"
-          >
-            {isPasswordVisible ? (
-              <EyeOff className="w-4 h-4 xs:w-5 xs:h-5" />
-            ) : (
-              <Eye className="w-4 h-4 xs:w-5 xs:h-5" />
-            )}
-          </button>
-        )}
-      </motion.div>
-    </div>
-  );
 
   return (
     <div className="min-h-[100dvh] bg-[#010101] flex flex-col items-center justify-start px-4 py-6 xs:py-8 overflow-y-auto relative">
@@ -352,6 +360,9 @@ export default function Register() {
               value={formData.name}
               required
               icon={User}
+              onChange={handleInputChange}
+              focusedField={focusedField}
+              setFocusedField={setFocusedField}
             />
             <InputField
               id="phone"
@@ -361,6 +372,9 @@ export default function Register() {
               placeholder="+1 (555) 123-4567"
               value={formData.phone}
               icon={Phone}
+              onChange={handleInputChange}
+              focusedField={focusedField}
+              setFocusedField={setFocusedField}
             />
           </div>
 
@@ -373,6 +387,9 @@ export default function Register() {
             value={formData.email}
             required
             icon={Mail}
+            onChange={handleInputChange}
+            focusedField={focusedField}
+            setFocusedField={setFocusedField}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -387,6 +404,9 @@ export default function Register() {
               showPasswordToggle
               isPasswordVisible={showPassword}
               onPasswordToggle={() => setShowPassword(!showPassword)}
+              onChange={handleInputChange}
+              focusedField={focusedField}
+              setFocusedField={setFocusedField}
             />
             <InputField
               id="confirmPassword"
@@ -399,6 +419,9 @@ export default function Register() {
               showPasswordToggle
               isPasswordVisible={showConfirmPassword}
               onPasswordToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+              onChange={handleInputChange}
+              focusedField={focusedField}
+              setFocusedField={setFocusedField}
             />
           </div>
 
@@ -425,6 +448,9 @@ export default function Register() {
                     placeholder="Your Company LLC"
                     value={formData.company.name}
                     icon={Building}
+                    onChange={handleInputChange}
+                    focusedField={focusedField}
+                    setFocusedField={setFocusedField}
                   />
 
                   <div>
