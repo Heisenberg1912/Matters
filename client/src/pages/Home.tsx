@@ -15,6 +15,8 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useSwipe } from "@/hooks/use-swipe";
 import { useProject } from "@/context/ProjectContext";
 import { useScheduleStore } from "@/store";
+import { useWeather } from "@/hooks/use-weather";
+import { useProjectInsights, getFormattedDate, getWeatherIcon } from "@/hooks/use-project-insights";
 import {
   Skeleton,
   SkeletonStageSlider,
@@ -32,8 +34,6 @@ import structuralMedal from "../assets/placeholders/medals/structural.png";
 import enclosureMedal from "../assets/placeholders/medals/enclosure.png";
 import mepMedal from "../assets/placeholders/medals/mep.png";
 import finishingMedal from "../assets/placeholders/medals/finishing.png";
-import insightWeather from "../assets/placeholders/insight-weather.png";
-import insightFact from "../assets/placeholders/insight-fact.png";
 import resourceOne from "../assets/placeholders/resource-1.jpg";
 import resourceTwo from "../assets/placeholders/resource-2.jpg";
 import resourceThree from "../assets/placeholders/resource-3.jpg";
@@ -109,22 +109,6 @@ const stageMeta = [
   { keywords: ["finish", "finishing", "interior"], slide: defaultStageSlides[8] },
 ];
 
-const insightCards = [
-  {
-    id: "weather",
-    badge: "Bhopal | 25C",
-    title: "Weather insight #1",
-    text: "Curing slab of upper floor should be done today to get optimal sunlight.",
-    image: insightWeather
-  },
-  {
-    id: "fact",
-    badge: "Did you know?",
-    title: "Your site progress indicates you don't need more masons.",
-    text: "Stick with the current crew to avoid budget overruns.",
-    image: insightFact
-  }
-];
 
 
 export default function Home() {
@@ -132,7 +116,48 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [weatherInsightIndex, setWeatherInsightIndex] = useState(0);
+  const [projectInsightIndex, setProjectInsightIndex] = useState(0);
   const { currentProject } = useProject();
+
+  // Get project location for weather data
+  const projectLocation = currentProject?.location?.city || currentProject?.location?.address || 'Delhi';
+
+  // Fetch weather data
+  const { weather, insights: weatherInsights, isLoading: weatherLoading } = useWeather(projectLocation);
+
+  // Get dynamic project insights
+  const { insights: projectInsights } = useProjectInsights(currentProject);
+
+  // Swipe handlers for insight cards (must be at top level)
+  const cycleWeatherInsight = (delta: number) => {
+    if (weatherInsights.length === 0) return;
+    setWeatherInsightIndex((prev) => {
+      const next = prev + delta;
+      if (next < 0) return weatherInsights.length - 1;
+      if (next >= weatherInsights.length) return 0;
+      return next;
+    });
+  };
+  const cycleProjectInsight = (delta: number) => {
+    if (projectInsights.length === 0) return;
+    setProjectInsightIndex((prev) => {
+      const next = prev + delta;
+      if (next < 0) return projectInsights.length - 1;
+      if (next >= projectInsights.length) return 0;
+      return next;
+    });
+  };
+  const { bind: swipeWeatherInsight } = useSwipe({
+    onSwipedLeft: () => cycleWeatherInsight(1),
+    onSwipedRight: () => cycleWeatherInsight(-1),
+    threshold: 20,
+  });
+  const { bind: swipeProjectInsight } = useSwipe({
+    onSwipedLeft: () => cycleProjectInsight(1),
+    onSwipedRight: () => cycleProjectInsight(-1),
+    threshold: 20,
+  });
 
   // Select raw state to avoid infinite loops from calling getters in selectors
   const schedulePhases = useScheduleStore((state) => state.phases);
@@ -396,39 +421,208 @@ export default function Home() {
               {/* Daily Insights Section */}
               <section className="mt-6 xs:mt-8 sm:mt-12 md:mt-16">
                 <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">Daily Insights</h2>
-                {isLoading ? (
+                {isLoading || weatherLoading ? (
                   <div className="mt-3 xs:mt-4 sm:mt-6 md:mt-8 grid grid-cols-1 gap-3 xs:gap-4 sm:gap-6 md:grid-cols-2">
                     <SkeletonInsightCard />
                     <SkeletonInsightCard />
                   </div>
                 ) : (
                   <div className="mt-3 xs:mt-4 sm:mt-6 md:mt-8 grid grid-cols-1 gap-3 xs:gap-4 sm:gap-6 md:grid-cols-2">
-                    {insightCards.map((card, idx) => (
-                      <div
-                        key={card.id}
-                        className="flex h-auto min-h-[260px] xs:min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:h-[600px] flex-col rounded-[16px] xs:rounded-[24px] sm:rounded-[34px] md:rounded-[46px] border border-[#1f1f1f] bg-[#101010] p-4 xs:p-5 sm:p-7 md:p-10 text-white animate-fade-in"
-                        style={{ animationDelay: `${idx * 150}ms` }}
+                    {/* Weather Insights Card */}
+                    <div
+                      className="relative flex h-auto min-h-[260px] xs:min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:h-[600px] flex-col rounded-[16px] xs:rounded-[24px] sm:rounded-[34px] md:rounded-[46px] border border-[#1f1f1f] bg-[#101010] p-4 xs:p-5 sm:p-7 md:p-10 text-white animate-fade-in select-none"
+                      style={{ touchAction: 'pan-y' }}
+                      {...swipeWeatherInsight()}
+                    >
+                      {/* Navigation arrows */}
+                      {weatherInsights.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => cycleWeatherInsight(-1)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 xs:w-10 xs:h-10 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+                            aria-label="Previous insight"
+                          >
+                            <svg className="w-4 h-4 xs:w-5 xs:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cycleWeatherInsight(1)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 xs:w-10 xs:h-10 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+                            aria-label="Next insight"
+                          >
+                            <svg className="w-4 h-4 xs:w-5 xs:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                      <p className="text-[0.55rem] xs:text-[0.6rem] sm:text-xs md:text-sm uppercase tracking-[0.2em] xs:tracking-[0.3em] sm:tracking-[0.4em] text-[#cfd5f3]">
+                        {weather ? `${weather.location} | ${weather.temperature}°C` : 'Weather'}
+                      </p>
+                      <h3
+                        key={`weather-title-${weatherInsightIndex}`}
+                        className="mt-2 xs:mt-3 sm:mt-4 md:mt-6 text-sm xs:text-base sm:text-xl md:text-2xl lg:text-3xl font-semibold leading-tight animate-slide-in"
                       >
-                        <p className="text-[0.55rem] xs:text-[0.6rem] sm:text-xs md:text-sm uppercase tracking-[0.2em] xs:tracking-[0.3em] sm:tracking-[0.4em] text-[#cfd5f3]">{card.badge}</p>
-                        <h3 className="mt-2 xs:mt-3 sm:mt-4 md:mt-6 text-sm xs:text-base sm:text-xl md:text-2xl lg:text-3xl font-semibold leading-tight">{card.title}</h3>
-                        <p className="mt-1.5 xs:mt-2 sm:mt-3 md:mt-4 text-[0.65rem] xs:text-xs sm:text-sm md:text-base lg:text-lg text-[#d7d7d7]">{card.text}</p>
-                        <div className="mt-auto pt-3 xs:pt-4 sm:pt-5 md:pt-6 overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[32px] border border-[#242424]">
-                          {card.image ? (
-                            <img src={card.image} alt={card.title} className="h-24 xs:h-32 sm:h-44 md:h-56 lg:h-72 w-full object-cover" />
-                          ) : (
-                            <div className="h-24 xs:h-32 sm:h-44 md:h-56 lg:h-72 w-full bg-[#1b1b1b]" />
-                          )}
-                        </div>
-                        <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6 flex justify-center gap-1 xs:gap-1.5 sm:gap-2">
-                          {[0, 1, 2].map((dot) => (
-                            <span
-                              key={`${card.id}-${dot}`}
-                              className={`h-1 w-1 xs:h-1.5 xs:w-1.5 sm:h-2 sm:w-2 rounded-full ${dot === 0 ? "bg-[var(--pill,#cfe0ad)]" : "bg-[#2a2a2a]"}`}
-                            />
-                          ))}
+                        {weatherInsights[weatherInsightIndex]?.title || 'Weather insight'}
+                      </h3>
+                      <p
+                        key={`weather-desc-${weatherInsightIndex}`}
+                        className="mt-1.5 xs:mt-2 sm:mt-3 md:mt-4 text-[0.65rem] xs:text-xs sm:text-sm md:text-base lg:text-lg text-[#d7d7d7] animate-slide-in"
+                        style={{ animationDelay: '50ms' }}
+                      >
+                        {weatherInsights[weatherInsightIndex]?.description || 'No weather-related recommendations right now.'}
+                      </p>
+                      <div className="mt-auto pt-3 xs:pt-4 sm:pt-5 md:pt-6 overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[32px] border border-[#242424]">
+                        {/* Weather visual card */}
+                        <div className="h-24 xs:h-32 sm:h-44 md:h-56 lg:h-72 w-full bg-gradient-to-br from-[#87CEEB] via-[#98D8C8] to-[#F7DC6F] flex flex-col items-start justify-between p-3 xs:p-4 sm:p-6 md:p-8">
+                          <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 xs:p-3 sm:p-4 text-[#1a1a1a]">
+                            <p className="text-[0.5rem] xs:text-[0.55rem] sm:text-xs opacity-80">
+                              {weather?.description || 'Loading weather...'}
+                            </p>
+                          </div>
+                          <div className="flex items-end justify-between w-full">
+                            <div className="text-[#1a1a1a]">
+                              <span className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-light">
+                                {weather?.temperature ?? '--'}
+                              </span>
+                              <span className="text-lg xs:text-xl sm:text-2xl align-top">°</span>
+                              <div className="text-[0.5rem] xs:text-[0.55rem] sm:text-xs mt-1 opacity-80">
+                                {getFormattedDate()}
+                                <br />
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                  </svg>
+                                  {weather?.location || projectLocation}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl">
+                              {weather ? getWeatherIcon(weather.icon) : '🌤️'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                      <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6 flex justify-center gap-1 xs:gap-1.5 sm:gap-2">
+                        {weatherInsights.length > 0 ? weatherInsights.map((_, idx) => (
+                          <button
+                            key={`weather-dot-${idx}`}
+                            type="button"
+                            onClick={() => setWeatherInsightIndex(idx)}
+                            className={`h-1 w-1 xs:h-1.5 xs:w-1.5 sm:h-2 sm:w-2 rounded-full transition-colors ${idx === weatherInsightIndex ? "bg-[var(--pill,#cfe0ad)]" : "bg-[#2a2a2a]"}`}
+                          />
+                        )) : [0, 1, 2].map((dot) => (
+                          <span
+                            key={`weather-dot-${dot}`}
+                            className={`h-1 w-1 xs:h-1.5 xs:w-1.5 sm:h-2 sm:w-2 rounded-full ${dot === 0 ? "bg-[var(--pill,#cfe0ad)]" : "bg-[#2a2a2a]"}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Project Insights Card */}
+                    <div
+                      className="relative flex h-auto min-h-[260px] xs:min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:h-[600px] flex-col rounded-[16px] xs:rounded-[24px] sm:rounded-[34px] md:rounded-[46px] border border-[#1f1f1f] bg-[#101010] p-4 xs:p-5 sm:p-7 md:p-10 text-white animate-fade-in select-none"
+                      style={{ animationDelay: '150ms', touchAction: 'pan-y' }}
+                      {...swipeProjectInsight()}
+                    >
+                      {/* Navigation arrows */}
+                      {projectInsights.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => cycleProjectInsight(-1)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 xs:w-10 xs:h-10 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+                            aria-label="Previous insight"
+                          >
+                            <svg className="w-4 h-4 xs:w-5 xs:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cycleProjectInsight(1)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 xs:w-10 xs:h-10 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+                            aria-label="Next insight"
+                          >
+                            <svg className="w-4 h-4 xs:w-5 xs:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                      <p
+                        key={`project-badge-${projectInsightIndex}`}
+                        className="text-[0.55rem] xs:text-[0.6rem] sm:text-xs md:text-sm uppercase tracking-[0.2em] xs:tracking-[0.3em] sm:tracking-[0.4em] text-[#cfd5f3] animate-slide-in"
+                      >
+                        {projectInsights[projectInsightIndex]?.badge || 'Did you know?'}
+                      </p>
+                      <h3
+                        key={`project-title-${projectInsightIndex}`}
+                        className="mt-2 xs:mt-3 sm:mt-4 md:mt-6 text-sm xs:text-base sm:text-xl md:text-2xl lg:text-3xl font-semibold leading-tight animate-slide-in"
+                        style={{ animationDelay: '50ms' }}
+                      >
+                        {projectInsights[projectInsightIndex]?.title || 'Project insight'}
+                      </h3>
+                      <p
+                        key={`project-desc-${projectInsightIndex}`}
+                        className="mt-1.5 xs:mt-2 sm:mt-3 md:mt-4 text-[0.65rem] xs:text-xs sm:text-sm md:text-base lg:text-lg text-[#d7d7d7] animate-slide-in"
+                        style={{ animationDelay: '100ms' }}
+                      >
+                        {projectInsights[projectInsightIndex]?.description || 'Keep tracking your progress for personalized insights.'}
+                      </p>
+                      <div
+                        key={`project-pattern-${projectInsightIndex}`}
+                        className="mt-auto pt-3 xs:pt-4 sm:pt-5 md:pt-6 overflow-hidden rounded-[12px] xs:rounded-[16px] sm:rounded-[24px] md:rounded-[32px] border border-[#242424] animate-fade-in-scale"
+                      >
+                        {/* Abstract pattern based on insight type */}
+                        <div className={`h-24 xs:h-32 sm:h-44 md:h-56 lg:h-72 w-full relative overflow-hidden transition-all duration-500 ${
+                          projectInsights[projectInsightIndex]?.type === 'warning'
+                            ? 'bg-gradient-to-br from-[#F39C12] via-[#E74C3C] to-[#9B59B6]'
+                            : projectInsights[projectInsightIndex]?.type === 'success'
+                            ? 'bg-gradient-to-br from-[#2ECC71] via-[#1ABC9C] to-[#3498DB]'
+                            : 'bg-gradient-to-br from-[#E67E22] via-[#D35400] to-[#C0392B]'
+                        }`}>
+                          {/* Decorative waves */}
+                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 300" preserveAspectRatio="none">
+                            <path d="M0,150 Q100,50 200,150 T400,150 L400,300 L0,300 Z" fill="rgba(255,255,255,0.1)" />
+                            <path d="M0,180 Q100,100 200,180 T400,180 L400,300 L0,300 Z" fill="rgba(255,255,255,0.1)" />
+                            <path d="M0,210 Q100,150 200,210 T400,210 L400,300 L0,300 Z" fill="rgba(255,255,255,0.15)" />
+                            <path d="M0,240 Q100,180 200,240 T400,240 L400,300 L0,300 Z" fill="rgba(139,90,43,0.3)" />
+                          </svg>
+                          {/* Type indicator */}
+                          <div className="absolute top-3 right-3 xs:top-4 xs:right-4 sm:top-6 sm:right-6">
+                            <span className={`text-2xl xs:text-3xl sm:text-4xl md:text-5xl transition-transform duration-300 inline-block ${
+                              projectInsights[projectInsightIndex]?.type === 'warning' ? 'drop-shadow-lg animate-bounce-subtle' : ''
+                            }`}>
+                              {projectInsights[projectInsightIndex]?.type === 'warning' && '⚠️'}
+                              {projectInsights[projectInsightIndex]?.type === 'success' && '✅'}
+                              {projectInsights[projectInsightIndex]?.type === 'tip' && '💡'}
+                              {projectInsights[projectInsightIndex]?.type === 'info' && '💡'}
+                              {!projectInsights[projectInsightIndex]?.type && '💡'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6 flex justify-center gap-1 xs:gap-1.5 sm:gap-2">
+                        {projectInsights.length > 0 ? projectInsights.map((_, idx) => (
+                          <button
+                            key={`project-dot-${idx}`}
+                            type="button"
+                            onClick={() => setProjectInsightIndex(idx)}
+                            className={`h-1 w-1 xs:h-1.5 xs:w-1.5 sm:h-2 sm:w-2 rounded-full transition-colors ${idx === projectInsightIndex ? "bg-[var(--pill,#cfe0ad)]" : "bg-[#2a2a2a]"}`}
+                          />
+                        )) : [0, 1, 2].map((dot) => (
+                          <span
+                            key={`project-dot-${dot}`}
+                            className={`h-1 w-1 xs:h-1.5 xs:w-1.5 sm:h-2 sm:w-2 rounded-full ${dot === 0 ? "bg-[var(--pill,#cfe0ad)]" : "bg-[#2a2a2a]"}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </section>
