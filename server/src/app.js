@@ -30,6 +30,7 @@ import jobsRoutes from './routes/jobs.js';
 import progressRoutes from './routes/progress.js';
 import contractorDashboardRoutes from './routes/contractor-dashboard.js';
 import messagesRoutes from './routes/messages.js';
+import notificationsRoutes from './routes/notifications.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -162,6 +163,7 @@ app.use(`${API_PREFIX}/jobs`, jobsRoutes);
 app.use(`${API_PREFIX}/progress`, progressRoutes);
 app.use(`${API_PREFIX}/contractor`, contractorDashboardRoutes);
 app.use(`${API_PREFIX}/messages`, messagesRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
 app.use(`${API_PREFIX}`, publicRoutes); // Public routes (includes /portal and /projects/:id/share)
 
 // Root endpoint

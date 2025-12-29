@@ -1,4 +1,4 @@
-import { Bell, X } from "lucide-react";
+import { Bell, X, Check, CheckCheck, Trash2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -6,7 +6,6 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
-import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
 export interface Notification {
@@ -22,6 +21,8 @@ interface NotificationsSheetProps {
   onOpenChange: (open: boolean) => void;
   notifications: Notification[];
   onNotificationClick?: (notification: Notification) => void;
+  onMarkAllAsRead?: () => void;
+  onClearAll?: () => void;
   onViewAll?: () => void;
 }
 
@@ -30,22 +31,16 @@ export default function NotificationsSheet({
   onOpenChange,
   notifications,
   onNotificationClick,
+  onMarkAllAsRead,
+  onClearAll,
   onViewAll,
 }: NotificationsSheetProps) {
-  const { showToast } = useNotifications();
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleNotificationClick = (notification: Notification) => {
     if (onNotificationClick) {
       onNotificationClick(notification);
-    } else {
-      showToast({
-        type: "info",
-        message: notification.title,
-        description: notification.message,
-      });
     }
-    onOpenChange(false);
   };
 
   return (
@@ -70,14 +65,36 @@ export default function NotificationsSheet({
               )}
             </SheetTitle>
           </div>
-          <SheetClose asChild>
-            <button
-              className="p-2 rounded-full hover:bg-[#1a1a1a] transition touch-target focus-ring"
-              aria-label="Close notifications"
-            >
-              <X className="h-5 w-5 text-[#888]" />
-            </button>
-          </SheetClose>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && onMarkAllAsRead && (
+              <button
+                onClick={onMarkAllAsRead}
+                className="p-2 rounded-full hover:bg-[#1a1a1a] transition touch-target focus-ring"
+                aria-label="Mark all as read"
+                title="Mark all as read"
+              >
+                <CheckCheck className="h-5 w-5 text-[#cfe0ad]" />
+              </button>
+            )}
+            {notifications.length > 0 && onClearAll && (
+              <button
+                onClick={onClearAll}
+                className="p-2 rounded-full hover:bg-[#1a1a1a] transition touch-target focus-ring"
+                aria-label="Clear all notifications"
+                title="Clear all"
+              >
+                <Trash2 className="h-5 w-5 text-[#888]" />
+              </button>
+            )}
+            <SheetClose asChild>
+              <button
+                className="p-2 rounded-full hover:bg-[#1a1a1a] transition touch-target focus-ring"
+                aria-label="Close notifications"
+              >
+                <X className="h-5 w-5 text-[#888]" />
+              </button>
+            </SheetClose>
+          </div>
         </SheetHeader>
 
         <div className="max-h-[50dvh] overflow-y-auto -mx-5 xs:-mx-6 sm:-mx-8 md:-mx-10 touch-scroll">
@@ -85,9 +102,12 @@ export default function NotificationsSheet({
             <div className="py-12 text-center">
               <Bell className="h-12 w-12 mx-auto text-[#3a3a3a] mb-4" />
               <p className="text-sm text-[#888]">No notifications yet</p>
+              <p className="text-xs text-[#666] mt-1">
+                You'll see updates about your projects here
+              </p>
             </div>
           ) : (
-            notifications.map((notif, idx) => (
+            notifications.map((notif) => (
               <button
                 key={notif.id}
                 className={cn(
@@ -110,20 +130,25 @@ export default function NotificationsSheet({
                       {notif.message}
                     </p>
                   </div>
-                  <span className="text-[0.65rem] xs:text-xs text-[#666] shrink-0">
-                    {notif.time}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[0.65rem] xs:text-xs text-[#666]">
+                      {notif.time}
+                    </span>
+                    {notif.unread && (
+                      <Check className="h-4 w-4 text-[#666] hover:text-[#cfe0ad]" />
+                    )}
+                  </div>
                 </div>
               </button>
             ))
           )}
         </div>
 
-        {notifications.length > 0 && (
+        {notifications.length > 0 && onViewAll && (
           <div className="pt-4 border-t border-[#1a1a1a] mt-4">
             <button
               onClick={() => {
-                onViewAll?.();
+                onViewAll();
                 onOpenChange(false);
               }}
               className="w-full py-3 text-sm xs:text-base font-semibold text-[#cfe0ad] hover:bg-[#151515] rounded-xl transition touch-target focus-ring"

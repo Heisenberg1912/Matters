@@ -3,7 +3,7 @@ import { authenticate, isContractor, isContractorOrAdmin, isCustomerOrAdmin } fr
 import ProgressUpdate from '../models/ProgressUpdate.js';
 import Project from '../models/Project.js';
 import Job from '../models/Job.js';
-import { triggerUserEvent, triggerProjectEvent } from '../utils/realtime.js';
+import { triggerUserEvent, triggerProjectEvent, sendNotification } from '../utils/realtime.js';
 
 const router = express.Router();
 
@@ -247,18 +247,26 @@ router.post('/', isContractor, async (req, res) => {
 
     // Send notification to project owner
     try {
-      await triggerUserEvent(project.owner.toString(), 'progress-update', {
-        updateId: progressUpdate._id,
-        projectId: project._id,
-        projectName: project.name,
-        type: progressUpdate.type,
-        contractor: {
-          id: req.userId,
-          name: req.user.name,
-          avatar: req.user.avatar,
+      await sendNotification({
+        userId: project.owner.toString(),
+        type: 'progress-update',
+        title: 'New Progress Update',
+        message: `${req.user.name} posted an update on "${project.name}"`,
+        data: {
+          updateId: progressUpdate._id,
+          projectId: project._id,
+          projectName: project.name,
+          type: progressUpdate.type,
+          contractor: {
+            id: req.userId,
+            name: req.user.name,
+            avatar: req.user.avatar,
+          },
+          description: description?.substring(0, 100),
+          photoCount: photoUrls?.length || 0,
         },
-        description: description?.substring(0, 100),
-        photoCount: photoUrls?.length || 0,
+        link: `/projects/${project._id}/progress`,
+        projectId: project._id,
       });
 
       // Also trigger project event for all team members

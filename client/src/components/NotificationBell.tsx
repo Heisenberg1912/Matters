@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Check, CheckCheck } from 'lucide-react';
-import { useNotifications } from '@/context/NotificationContext';
+import { Bell, X, CheckCheck } from 'lucide-react';
+import { usePersistentNotifications, type PersistentNotification } from '@/context/NotificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } = usePersistentNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -115,7 +115,7 @@ export default function NotificationBell() {
                 </div>
               ) : (
                 <div className="divide-y divide-neutral-800">
-                  {notifications.map((notification) => (
+                  {notifications.map((notification: PersistentNotification) => (
                     <div
                       key={notification.id}
                       onClick={() => {

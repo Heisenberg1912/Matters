@@ -3,7 +3,7 @@ import { authenticate, authorize, isContractor, isCustomerOrAdmin, isAdmin } fro
 import Job from '../models/Job.js';
 import Project from '../models/Project.js';
 import User from '../models/User.js';
-import { triggerUserEvent } from '../utils/realtime.js';
+import { triggerUserEvent, sendNotification } from '../utils/realtime.js';
 
 const router = express.Router();
 
@@ -481,16 +481,24 @@ router.post('/:id/bid', isContractor, async (req, res) => {
 
     // Send notification to job poster
     try {
-      await triggerUserEvent(job.postedBy._id.toString(), 'bid-submitted', {
-        jobId: job._id,
-        jobTitle: job.title,
-        contractor: {
-          id: req.userId,
-          name: req.user.name,
-          avatar: req.user.avatar,
+      await sendNotification({
+        userId: job.postedBy._id.toString(),
+        type: 'bid-submitted',
+        title: 'New Bid Received',
+        message: `${req.user.name} submitted a bid of ₹${amount.toLocaleString()} on "${job.title}"`,
+        data: {
+          jobId: job._id,
+          jobTitle: job.title,
+          contractor: {
+            id: req.userId,
+            name: req.user.name,
+            avatar: req.user.avatar,
+          },
+          amount,
+          proposal: proposal.substring(0, 100),
         },
-        amount,
-        proposal: proposal.substring(0, 100),
+        link: `/jobs/${job._id}`,
+        jobId: job._id,
       });
     } catch (notifError) {
       console.error('Failed to send notification:', notifError);
@@ -636,11 +644,19 @@ router.post('/:id/bid/:bidId/accept', isCustomerOrAdmin, async (req, res) => {
     const acceptedBid = job.bids.id(req.params.bidId);
     if (acceptedBid) {
       try {
-        await triggerUserEvent(acceptedBid.contractor.toString(), 'bid-accepted', {
+        await sendNotification({
+          userId: acceptedBid.contractor.toString(),
+          type: 'bid-accepted',
+          title: 'Bid Accepted!',
+          message: `Your bid on "${job.title}" has been accepted!`,
+          data: {
+            jobId: job._id,
+            jobTitle: job.title,
+            amount: acceptedBid.amount,
+            note: req.body.note,
+          },
+          link: `/jobs/${job._id}`,
           jobId: job._id,
-          jobTitle: job.title,
-          amount: acceptedBid.amount,
-          note: req.body.note,
         });
       } catch (notifError) {
         console.error('Failed to send notification:', notifError);
@@ -694,10 +710,18 @@ router.post('/:id/bid/:bidId/reject', isCustomerOrAdmin, async (req, res) => {
     const rejectedBid = job.bids.id(req.params.bidId);
     if (rejectedBid) {
       try {
-        await triggerUserEvent(rejectedBid.contractor.toString(), 'bid-rejected', {
+        await sendNotification({
+          userId: rejectedBid.contractor.toString(),
+          type: 'bid-rejected',
+          title: 'Bid Not Accepted',
+          message: `Your bid on "${job.title}" was not accepted.`,
+          data: {
+            jobId: job._id,
+            jobTitle: job.title,
+            note: req.body.note,
+          },
+          link: `/jobs/${job._id}`,
           jobId: job._id,
-          jobTitle: job.title,
-          note: req.body.note,
         });
       } catch (notifError) {
         console.error('Failed to send notification:', notifError);

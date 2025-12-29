@@ -1,4 +1,5 @@
 import Pusher from 'pusher';
+import Notification from '../models/Notification.js';
 
 const isPusherEnabled = () =>
   process.env.PUSHER_ENABLED === 'true' &&
@@ -54,4 +55,58 @@ export const triggerUserEvent = async (userId, event, payload) => {
     return false;
   }
   return triggerEvent(`private-user-${userId}`, event, payload);
+};
+
+// Send notification to user (saves to DB and triggers real-time event)
+export const sendNotification = async ({
+  userId,
+  type,
+  title,
+  message,
+  data = {},
+  link = null,
+  projectId = null,
+  jobId = null,
+}) => {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    // Save notification to database
+    const notification = await Notification.createNotification({
+      user: userId,
+      type,
+      title,
+      message,
+      data,
+      link,
+      project: projectId,
+      job: jobId,
+    });
+
+    // Trigger real-time event
+    await triggerUserEvent(userId, type, {
+      id: notification._id,
+      type,
+      title,
+      message,
+      data,
+      link,
+      createdAt: notification.createdAt,
+    });
+
+    return notification;
+  } catch (error) {
+    console.error('Send notification error:', error);
+    return null;
+  }
+};
+
+// Send notification to multiple users
+export const sendNotificationToUsers = async (userIds, notificationData) => {
+  const results = await Promise.allSettled(
+    userIds.map((userId) => sendNotification({ userId, ...notificationData }))
+  );
+  return results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
 };

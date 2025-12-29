@@ -10,6 +10,7 @@ import QuickAddSheet from "@/components/quick-add-sheet";
 import { Card } from "@/components/ui/card";
 import { Sheet } from "@/components/ui/sheet";
 import { useNotifications } from "@/hooks/use-notifications";
+import { usePersistentNotifications } from "@/context/NotificationContext";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useSwipe } from "@/hooks/use-swipe";
 import { useProject } from "@/context/ProjectContext";
@@ -125,12 +126,6 @@ const insightCards = [
   }
 ];
 
-const mockNotifications = [
-  { id: 1, title: "Budget Alert", message: "Cement costs exceeded estimate by 5%", time: "5m", unread: true },
-  { id: 2, title: "New Message", message: "Rajesh Kumar sent you a message", time: "20m", unread: true },
-  { id: 3, title: "Task Completed", message: "Foundation work marked complete", time: "1h", unread: false },
-  { id: 4, title: "Weather Warning", message: "Rain expected tomorrow afternoon", time: "2h", unread: false }
-];
 
 export default function Home() {
   const [stageIndex, setStageIndex] = useState(0);
@@ -183,10 +178,32 @@ export default function Home() {
   const stageSlides = scheduleStageSlides.length > 0 ? scheduleStageSlides : defaultStageSlides;
   const currentStage = stageSlides[stageIndex];
   const { showToast } = useNotifications();
+  const { notifications: persistentNotifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } = usePersistentNotifications();
   const progressPercent = currentProject?.progress?.percentage ?? overallProgress;
   const tasksTotal = tasksByStatus.completed + tasksByStatus.in_progress + tasksByStatus.pending;
 
-  const unreadCount = mockNotifications.filter(n => n.unread).length;
+  // Transform persistent notifications to the format expected by NotificationsSheet
+  const notificationsForSheet = persistentNotifications.map(n => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    time: n.time || getRelativeTime(n.createdAt),
+    unread: !n.read,
+  }));
+
+  function getRelativeTime(date: Date) {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
+    return new Date(date).toLocaleDateString();
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1200);
@@ -251,7 +268,12 @@ export default function Home() {
           <NotificationsSheet
             open={notificationsOpen}
             onOpenChange={setNotificationsOpen}
-            notifications={mockNotifications}
+            notifications={notificationsForSheet}
+            onNotificationClick={(notification) => {
+              markAsRead(notification.id.toString());
+            }}
+            onMarkAllAsRead={markAllAsRead}
+            onClearAll={clearNotifications}
           />
 
           {/* Main Content */}

@@ -36,7 +36,6 @@ const STATUS_FILTERS = [
 export default function ViewBids() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<(Job & { bidsSummary?: { total: number; pending: number; accepted: number } })[]>([]);
-  const [filteredJobs, setFilteredJobs] = useState<typeof jobs>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -44,17 +43,14 @@ export default function ViewBids() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Compute filtered jobs directly during render to avoid race conditions
+  const filteredJobs = statusFilter === "all"
+    ? jobs
+    : jobs.filter((job) => job.status === statusFilter);
+
   useEffect(() => {
     loadJobs();
   }, []);
-
-  useEffect(() => {
-    if (statusFilter === "all") {
-      setFilteredJobs(jobs);
-    } else {
-      setFilteredJobs(jobs.filter((job) => job.status === statusFilter));
-    }
-  }, [statusFilter, jobs]);
 
   const loadJobs = async () => {
     try {
